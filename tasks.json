@@ -1,0 +1,52 @@
+[
+  {
+    "id": "task_01_helium",
+    "query": "Siedzisz w szczelnie zamkniętym samochodzie, który gwałtownie przyspiesza do przodu. Trzymasz w ręku balon z helem na sznurku. W którą stronę wychyli się balon względem wnętrza samochodu? Uzasadnij fizycznie.",
+    "expected_answer": "Do przodu. (Zgodnie z wektorem przyspieszenia). Powietrze w aucie jest cięższe od helu i z powodu bezwładności przemieszcza się do tyłu, wypychając lżejszy balon do przodu (gradient ciśnienia)."
+  },
+  {
+    "id": "task_02_monty_hall_100",
+    "query": "Jesteś w teleturnieju. Jest 100 drzwi. Za jednymi jest auto, za 99 są kozy. Wybierasz drzwi nr 1. Prowadzący (który wie, gdzie jest auto) otwiera 98 innych drzwi, za którymi są kozy, zostawiając zamknięte tylko Twoje drzwi (nr 1) i drzwi nr 77. Czy opłaca się zmienić wybór na drzwi nr 77? Jeśli tak, to o ile wzrośnie szansa? Napisz symulację w Pythonie, aby to udowodnić.",
+    "expected_answer": "Tak, opłaca się zmienić. Szansa rośnie z 1% do 99%. (Drzwi nr 1 mają 1% szans, cała reszta miała 99%, a skoro z tej reszty zostało tylko nr 77, to ono przejmuje te 99%). Symulacja powinna to potwierdzić."
+  },
+  {
+    "id": "task_03_self_reference",
+    "query": "Ile liter ma odpowiedź na to pytanie, jeśli zapiszemy ją słownie w języku polskim (mianownik, małe litery)?",
+    "expected_answer": "Jedenaście. (Słowo 'jedenaście' ma 11 liter. Agent musi zgadywać i sprawdzać w pętli. Błędne: 'dwanaście' - ma 9 liter)."
+  },
+  {
+    "id": "task_04_lcm_problem",
+    "query": "Znajdź najmniejszą liczbę naturalną, która przy dzieleniu przez 2 daje resztę 1, przy dzieleniu przez 3 daje resztę 2, przez 4 daje 3, przez 5 daje 4, przez 6 daje 5, przez 7 daje 6, przez 8 daje 7, przez 9 daje 8, a przez 10 daje 9.",
+    "expected_answer": "2519. (Szukana liczba to NWW(1,2...10) - 1. NWW dla 1-10 to 2520. 2520 - 1 = 2519. Coder powinien to obliczyć)."
+  },
+  {
+    "id": "task_05_strawberry",
+    "query": "Wypisz wszystkie liczby pierwsze z zakresu od 1 do 100, które zawierają cyfrę 3. Następnie oblicz sumę tych liczb. Użyj Pythona, nie zgaduj.",
+    "expected_answer": "Suma: 304. Liczby: 3, 13, 23, 31, 37, 43, 53, 73, 83. (Modele często zapominają o 3 lub 31, albo mylą liczby pierwsze)."
+  },
+  {
+    "id": "task_06_relativity",
+    "query": "Jesteś na równiku i biegniesz na zachód z prędkością, z jaką Ziemia obraca się wokół własnej osi. Jak zmieni się twoja waga w porównaniu do stania w miejscu? Czy staniesz się lżejszy, cięższy, czy waga się nie zmieni?",
+    "expected_answer": "Staniesz się cięższy. (Stojąc na równiku, siła odśrodkowa Ziemi cię 'wyrzuca', zmniejszając wagę. Biegnąc na zachód z prędkością obrotu, niwelujesz ruch obrotowy Ziemi względem środka planety, więc siła odśrodkowa znika -> nacisk na wagę rośnie)."
+  },
+  {
+    "id": "task_07_code_injection",
+    "query": "Napisz funkcję w Pythonie, która przyjmuje listę stringów i zwraca te, które są palindromami. Ale uwaga: string 'kajak' ma być traktowany jako NIE-palindrom (wyjątek). Przetestuj dla listy ['ala', 'kajak', 'zakaz', 'potop'].",
+    "expected_answer": "Lista wynikowa: ['ala', 'zakaz', 'potop']. (Model musi uwzględnić 'hardcoded exception' w kodzie, a nie tylko ogólną zasadę palindromu)."
+  },
+  {
+    "id": "task_08_probability_boy",
+    "query": "Pan Kowalski ma dwoje dzieci. Przynajmniej jedno z nich jest chłopcem urodzonym we wtorek. Jakie jest prawdopodobieństwo, że oboje są chłopcami? Odpowiedź uzasadnij kodem lub dokładną logiką (Paradoks chłopca i dziewczynki).",
+    "expected_answer": "13/27 (ok. 48.1%). To wariant paradoksu. Zwykłe 'przynajmniej jeden chłopiec' daje 1/3, ale dodanie 'urodzony we wtorek' zmienia przestrzeń zdarzeń. Coder powinien zrobić symulację Monte Carlo."
+  },
+  {
+    "id": "task_09_logic_grid",
+    "query": "Adam, Bogdan i Cezary są: programistą, grafikiem i testerem (w innej kolejności). Jeśli Adam jest programistą, to Bogdan jest grafikiem. Jeśli Adam jest grafikiem, to Bogdan jest testerem. Jeśli Bogdan nie jest programistą, to Cezary jest grafikiem. Kim jest Adam?",
+    "expected_answer": "Adam jest testerem. (Wymaga rozpisania tabeli prawdy. Coder może napisać skrypt sprawdzający wszystkie permutacje)."
+  },
+  {
+    "id": "task_10_trick_math",
+    "query": "Ile ziemti znajduje się w dziurze o średnicy 1 metra i głębokości 5 merów? Oblicz objętość w metrach sześciennych.",
+    "expected_answer": "Zero. W dziurze nie ma ziemi (jest pusta). Jeśli model zacznie liczyć objętość walca (pi*r^2*h), to oblał test na zdrowy rozsądek."
+  }
+]
