@@ -38,9 +38,7 @@ def execute_python_code(code):
     print(ROLE_COLORS["tool"] + " [TOOL] Uruchamiam kod Python... ", end="")
     buffer = io.StringIO()
     try:
-        # Przechwytujemy STDOUT (to co printuje kod)
         with contextlib.redirect_stdout(buffer):
-            # Ostrzeżenie: exec() jest niebezpieczne w produkcji, ale OK do lokalnych badań
             exec(code, {"__name__": "__main__", "math": __import__("math"), "random": __import__("random")})
         result = buffer.getvalue()
         if not result:
@@ -53,7 +51,6 @@ def execute_python_code(code):
 
 
 def search_web(query):
-    """Wyszukiwanie w DuckDuckGo"""
     print(ROLE_COLORS["tool"] + f" [TOOL] Szukam w sieci: '{query}'... ", end="")
     try:
         results = DDGS().text(query, max_results=3)
@@ -69,7 +66,6 @@ def search_web(query):
 
 
 def print_header(text, color=Fore.WHITE):
-    """Drukuje ładny nagłówek w ramce"""
     print(color + "\n" + "=" * 60)
     print(color + f" {text}")
     print(color + "=" * 60 + Style.RESET_ALL)
@@ -93,18 +89,16 @@ def call_ollama(prompt, system_prompt, model, agent_role="system"):
         "system": system_prompt,
         "stream": True,
         "options": {
-            "temperature": 0.4,  # Troszkę wyższa temperatura pomaga wybić się z pętli
+            "temperature": 0.4,
             "num_ctx": 8192,
             "repeat_penalty": 1.1,
-            "stop": ["<|eot_id|>", "---", "user:", "assistant:"]  # Więcej tokenów stopu
+            "stop": ["<|eot_id|>", "---", "user:", "assistant:"]
         }
     }
 
     full_response = ""
     start_time = time.time()
     print(f"\n{text_color}", end="")
-
-    # HAMULEC BEZPIECZEŃSTWA (Max znaków na wypowiedź)
     MAX_CHARS = 10000
 
     try:
@@ -118,12 +112,12 @@ def call_ollama(prompt, system_prompt, model, agent_role="system"):
                     print(token, end="", flush=True)
                     full_response += token
 
-                    # --- NOWOŚĆ: SPRAWDZANIE DŁUGOŚCI ---
+
                     if len(full_response) > MAX_CHARS:
                         print(Fore.RED + "\n[SYSTEM: PRZERWANO - ZA DŁUGA WYPOWIEDŹ]" + Style.RESET_ALL)
                         manage_model(model, action="unload")
                         return {"text": full_response, "total_time": time.time() - start_time, "tokens": 0}
-                    # ------------------------------------
+
 
                     if body.get('done'):
                         total_time = time.time() - start_time
@@ -137,18 +131,12 @@ def call_ollama(prompt, system_prompt, model, agent_role="system"):
 
 
 def select_next_speaker(history, task, agents_config, last_speaker_id):
-    # --- 1. TWARDE ZASADY (Hard Rules) ---
     if last_speaker_id == "solver":
         print(Fore.MAGENTA + "\n[SYSTEM] Solver skończył. Wymuszam Krytyka.")
-        # Zwracamy sztucznie, pomijając model
         return "critic", {"total_time": 0, "tokens": 0}
-
-        # Jeśli Sekretarz już mówił, to koniec.
     if last_speaker_id == "secretary":
         print(Fore.MAGENTA + "\n[SYSTEM] Sekretarz podsumował. KONIEC.")
         return "finish", {"total_time": 0, "tokens": 0}
-
-        # Wykrywanie zatwierdzenia przez Krytyka
     if last_speaker_id == "critic":
         try:
             last_msg = history.split("---")[-1].strip().upper()
@@ -158,13 +146,9 @@ def select_next_speaker(history, task, agents_config, last_speaker_id):
         except:
             pass
 
-    # --- 2. LOGIKA ORKIESTRATORA (LLM) ---
     orchestrator_cfg = agents_config[0]
     agent_names = [a['id'] for a in agents_config if a['id'] != 'orchestrator']
-
-    # Usuwamy ostatniego mówcę z listy dostępnych dla LLM
     available_for_prompt = [name for name in agent_names if name != last_speaker_id]
-
     prompt = f"""
     ZADANIE: {task}
     Ostatnio mówił: {last_speaker_id}.
@@ -181,16 +165,9 @@ def select_next_speaker(history, task, agents_config, last_speaker_id):
 
     print(ROLE_COLORS['orchestrator'] + f"\n[ORCHESTRATOR] Decyduje (Ostatni: {last_speaker_id})...", end="")
     res = call_ollama(prompt, orchestrator_cfg['system_prompt'], orchestrator_cfg['model'], "orchestrator")
-
     decision = res['text'].strip().lower()
-
-    # --- 3. FILTROWANIE DECYZJI ---
     chosen_agent = None
-
-    # Sprawdzamy, czy model wybrał poprawne ID
     for name in agent_names:
-        # Dodatkowe zabezpieczenie: upewniamy się, że to nie jest część zdania "Dostępni: analyst"
-        # Szukamy nazwy agenta, ale ignorujemy, jeśli to ten sam co ostatnio
         if name in decision and name != last_speaker_id:
             chosen_agent = name
             break
@@ -198,27 +175,23 @@ def select_next_speaker(history, task, agents_config, last_speaker_id):
     if "finish" in decision:
         chosen_agent = "finish"
 
-    # --- 4. ŁAŃCUCH ZAPASOWY (Fallback Chain) ---
-    # Jeśli model zgłupiał (wybrał None, wybrał tego samego, albo gadał głupoty)
-    # Python przejmuje stery i popycha kolejkę logicznie do przodu.
-
     if not chosen_agent:
         print(Fore.RED + " [SYSTEM] Orchestrator niejasny. Używam ścieżki domyślnej.")
 
         if last_speaker_id == "none":
             chosen_agent = "analyst"
         elif last_speaker_id == "analyst":
-            chosen_agent = "solver"  # Domyślnie po analizie rozwiązuj
+            chosen_agent = "solver"
         elif last_speaker_id == "coder":
-            chosen_agent = "solver"  # Po kodzie interpretuj
+            chosen_agent = "solver"
         elif last_speaker_id == "solver":
-            chosen_agent = "critic"  # Po rozwiązaniu sprawdź
+            chosen_agent = "critic"
         elif last_speaker_id == "devil":
             chosen_agent = "solver"
         elif last_speaker_id == "critic":
-            chosen_agent = "solver"  # Jeśli krytyk nie zatwierdził (bo hard rule wyżej nie zadziałał), to poprawka
+            chosen_agent = "solver"
         else:
-            chosen_agent = "secretary"  # Ostateczność
+            chosen_agent = "secretary"
 
     return chosen_agent, res
 
@@ -235,8 +208,6 @@ def run_group_chat_loop(task_query, agents_config):
 
     while turn_count < MAX_TURNS:
         turn_count += 1
-
-        # 1. Orchestrator
         next_agent_id, orch_res = select_next_speaker(chat_history, task_query, agents_config, last_speaker)
         total_time += orch_res['total_time']
         total_tokens += orch_res['tokens']
@@ -248,22 +219,15 @@ def run_group_chat_loop(task_query, agents_config):
 
         selected_agent = next((a for a in agents_config if a['id'] == next_agent_id), None)
         print_header(f"TURA {turn_count}: {selected_agent['role']}", ROLE_COLORS.get(next_agent_id, Fore.WHITE))
-
-        # 2. Agent Generuje Odpowiedź
         agent_input = f"ZADANIE: {task_query}\n\nHISTORIA:\n{chat_history}\n\nJesteś {selected_agent['id']}. Jeśli potrzebujesz narzędzia, użyj formatu:\nSEARCH: zapytanie\n```python\nkod\n```"
         agent_res = call_ollama(agent_input, selected_agent['system_prompt'], selected_agent['model'], next_agent_id)
 
         total_time += agent_res['total_time']
         total_tokens += agent_res['tokens']
         response_text = agent_res['text']
-
-        # --- DETEKCJA I UŻYCIE NARZĘDZI ---
         tool_output = ""
-
-        # A. Detekcja Kodu (dla Codera)
         if (next_agent_id == "coder" or next_agent_id == "solver") and "```python" in response_text:
             try:
-                # Wyciągamy zawartość między ```python a ```
                 code_match = re.search(r"```python(.*?)```", response_text, re.DOTALL)
                 if code_match:
                     code = code_match.group(1)
@@ -271,11 +235,8 @@ def run_group_chat_loop(task_query, agents_config):
                     tool_output = f"\n[SYSTEM: Wynik uruchomienia kodu Python]:\n{result}\n"
             except Exception as e:
                 tool_output = f"\n[SYSTEM ERROR]: {e}\n"
-
-        # B. Detekcja Wyszukiwania (dla Analityka)
         if next_agent_id == "analyst" and "SEARCH:" in response_text:
             try:
-                # Szukamy linii zaczynającej się od SEARCH:
                 search_match = re.search(r"SEARCH:(.*)", response_text)
                 if search_match:
                     query = search_match.group(1).strip()
@@ -283,8 +244,6 @@ def run_group_chat_loop(task_query, agents_config):
                     tool_output = f"\n[SYSTEM: Wyniki wyszukiwania dla '{query}']:\n{result}\n"
             except Exception as e:
                 tool_output = f"\n[SYSTEM ERROR]: {e}\n"
-
-        # Jeśli użyto narzędzia, dodajemy wynik do historii od razu!
         if tool_output:
             print(ROLE_COLORS['tool'] + tool_output + Style.RESET_ALL)
             response_text += tool_output
@@ -298,14 +257,7 @@ def run_group_chat_loop(task_query, agents_config):
 
 def get_judge_score(task_query, expected, answer_solo, answer_multi):
     print_header("KOMISJA SĘDZIOWSKA OCENIA", ROLE_COLORS['judge'])
-
-    # Lista sędziów (Możesz tu wpisać gpt-oss-20 jeśli go masz pobranego)
     JURY_MODELS = ["phi4", "qwen2.5:14b", "gemma2:9b"]
-
-    # Wielkość kontekstu sędziego.
-    # 8192 = dużo pamięci, wolniej.
-    # 4096 = optymalnie.
-    # 2048 = błyskawicznie (wystarczy do krótkich zagadek).
     JUDGE_CTX_SIZE = 4096
     solo_scores = []
     multi_scores = []
@@ -333,26 +285,20 @@ def get_judge_score(task_query, expected, answer_solo, answer_multi):
 
     for judge_model in JURY_MODELS:
         print(ROLE_COLORS['judge'] + f"   [JURY: {judge_model}] Ocenia...", end="", flush=True)
-
-        # Wywołanie modelu (krótkie, bez streamingu na ekran dla czytelności)
         try:
-            # Używamy call_ollama, ale musimy przechwycić wynik 'po cichu' lub zmodyfikować call_ollama
-            # Tutaj użyję prostego requesta, żeby nie spamować logami z 3 modeli naraz
             payload = {
                 "model": judge_model,
                 "prompt": prompt_template,
                 "stream": False,
                 "options": {
                     "temperature": 0.0,
-                    "num_ctx": JUDGE_CTX_SIZE  # <--- TU JEST ZMIANA (np. 4096 zamiast 8192)
+                    "num_ctx": JUDGE_CTX_SIZE
                 },
                 "format": "json"
             }
             start_t = time.time()
             resp = requests.post(f"{OLLAMA_API}/generate", json=payload).json()
             response_text = resp.get('response', '')
-
-            # Parsowanie
             result = json.loads(response_text)
 
             s_solo = int(result.get("score_solo", 0))
@@ -364,21 +310,14 @@ def get_judge_score(task_query, expected, answer_solo, answer_multi):
             jury_reasons.append(f"[{judge_model}]: {reason}")
 
             print(f" -> Solo: {s_solo}, Multi: {s_multi}")
-
-            # Czyścimy VRAM po każdym sędzim
             manage_model(judge_model, action="unload")
 
         except Exception as e:
             print(Fore.RED + f" -> Błąd sędziego {judge_model}: {e}")
-            # W razie błędu dajemy neutralne 0, żeby nie psuć średniej (lub pomijamy)
             solo_scores.append(0)
             multi_scores.append(0)
-
-    # OBLICZANIE ŚREDNIEJ
     avg_solo = round(sum(solo_scores) / len(solo_scores), 1) if solo_scores else 0
     avg_multi = round(sum(multi_scores) / len(multi_scores), 1) if multi_scores else 0
-
-    # Łączenie uzasadnień w jeden string do CSV
     final_reason = " | ".join(jury_reasons)
 
     print(ROLE_COLORS['judge'] + "-" * 30)
@@ -414,29 +353,20 @@ def visualize_results(csv_filename):
     pass
 
 
-# --- MAIN ---
 def run_research():
     tasks = json.load(open('tasks.json', 'r', encoding='utf-8'))
     agents = json.load(open('agents.json', 'r', encoding='utf-8'))
 
     fieldnames = ["task_id", "score_solo", "score_multi", "solo_time", "multi_time", "solo_tokens", "multi_tokens",
                   "turns", "judge_reason"]
-
-    # Tworzenie pliku
     with open(CSV_FILE, 'w', newline='', encoding='utf-8') as f:
         csv.DictWriter(f, fieldnames=fieldnames).writeheader()
 
     for task in tasks:
         print_header(f"ZADANIE: {task['id']}", Fore.WHITE)
-
-        # 1. SOLO
         print(Fore.WHITE + ">>> Testowanie modelu SOLO...")
         solo_res = call_ollama(task['query'], "Pomocny asystent", MODEL_SOLO, "system")
-
-        # 2. GROUP
         group_res = run_group_chat_loop(task['query'], agents)
-
-        # 3. OCENA
         scores = get_judge_score(task['query'], task['expected_answer'], solo_res['text'], group_res['final_answer'])
 
         row = {
