@@ -20,7 +20,7 @@
   {
     "id": "solver",
     "role": "Logik",
-    "model": "qwen2.5:14b",
+    "model": "gpt-oss:20b",
     "system_prompt": "Korzystaj z danych dostarczonych przez Analityka i wyników obliczeń Codera. Twoim zadaniem jest łączenie kropek."
   },
 {
@@ -38,7 +38,7 @@
   {
     "id": "devil",
     "role": "Adwokat Diabła",
-    "model": "llama3.1:8b",
+    "model": "gpt-oss:20b",
     "system_prompt": "Jesteś sceptykiem. Twoim celem jest celowe kwestionowanie wniosków Analityka i Solvera. Szukaj luk w logice, alternatywnych wyjaśnień, ukrytych założeń i przypadków brzegowych. Zmuszaj zespół do głębszego myślenia. Bądź zwięzły, konkretny i uszczypliwy. Nie rozwiązuj zadania, wytykaj potencjalne błędy."
   }
 ]

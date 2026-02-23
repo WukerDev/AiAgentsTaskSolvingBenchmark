@@ -14,8 +14,7 @@ import io
 init(autoreset=True)
 
 OLLAMA_API = "http://localhost:11434/api"
-MODEL_SOLO = "llama3.1:8b"
-MODEL_JUDGE = "qwen2.5:14b"
+MODEL_SOLO = "qwen2.5:14b"
 EXCEL_FILE = "badanie_groupchat_wyniki.xlsx"
 MAX_TURNS = 15
 
@@ -282,7 +281,7 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
 def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final):
     print_header("KOMISJA SĘDZIOWSKA OCENIA", ROLE_COLORS['judge'])
-    JURY_MODELS = ["phi4", "qwen2.5:14b", "gemma2:9b"]
+    JURY_MODELS = ["phi4", "qwen2.5:14b", "gpt-oss:20b"]
     JUDGE_CTX_SIZE = 4096
 
     solo_scores = []
