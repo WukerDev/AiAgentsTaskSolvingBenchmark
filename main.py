@@ -4,6 +4,7 @@ import json
 import time
 import os
 import re
+import multiprocessing
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -32,17 +33,30 @@ ROLE_COLORS = {
 }
 
 
-def execute_python_code(code):
-    print(ROLE_COLORS["tool"] + " [TOOL] Uruchamiam kod Python... ", end="")
+def run_code_with_timeout(code, queue):
     buffer = io.StringIO()
     try:
         with contextlib.redirect_stdout(buffer):
             exec(code, {"__name__": "__main__", "math": __import__("math"), "random": __import__("random")})
-        result = buffer.getvalue()
-        if not result:
-            result = "[Kod wykonany poprawnie, brak outputu (użyj print)]"
+        queue.put(buffer.getvalue() or "[Kod wykonany poprawnie]")
     except Exception as e:
-        result = f"Błąd wykonania kodu: {e}"
+        queue.put(f"Błąd wykonania: {e}")
+
+
+def execute_python_code(code, timeout=10):
+    print(ROLE_COLORS["tool"] + f" [TOOL] Uruchamiam kod Python (timeout {timeout}s)... ", end="")
+    queue = multiprocessing.Queue()
+    p = multiprocessing.Process(target=run_code_with_timeout, args=(code, queue))
+
+    p.start()
+    p.join(timeout)
+
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        result = f"BŁĄD: Przekroczono limit czasu ({timeout}s)!"
+    else:
+        result = queue.get()
 
     print(f"Wynik: {result[:50]}..." + Style.RESET_ALL)
     return result

@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d45e51ed-c987-43ff-8091-aa7fcf8b1ecd" name="Changes" comment="Zmiany" />
+    <list default="true" id="d45e51ed-c987-43ff-8091-aa7fcf8b1ecd" name="Changes" comment="Poprawka">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,12 +29,12 @@
     &quot;assignee&quot;: &quot;WukerDev&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/WukerDev/AiAgentsTaskSolvingBenchmark.git&quot;,
-    &quot;accountId&quot;: &quot;0802da18-9278-4d76-a2d2-03de7b99dfdb&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/WukerDev/AiAgentsTaskSolvingBenchmark.git",
+    "accountId": "84177285-474f-4b18-ab50-44f943ee29f1"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -79,7 +82,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-4e2b1448bda8-9a97661f3031-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.27397.106" />
+        <option value="bundled-python-sdk-d7ad00fb9fc3-c546a90a8094-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-242.23726.102" />
       </set>
     </attachedChunks>
   </component>
@@ -108,7 +111,15 @@
       <option name="project" value="LOCAL" />
       <updated>1771249105551</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Poprawka">
+      <option name="closed" value="true" />
+      <created>1771855271900</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1771855271900</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -125,6 +136,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="change" />
     <MESSAGE value="Zmiany" />
-    <option name="LAST_COMMIT_MESSAGE" value="Zmiany" />
+    <MESSAGE value="Poprawka" />
+    <option name="LAST_COMMIT_MESSAGE" value="Poprawka" />
   </component>
 </project>
