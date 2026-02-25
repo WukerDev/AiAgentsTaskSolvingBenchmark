@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 from colorama import init, Fore, Style, Back
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 import io
 
 init(autoreset=True)
@@ -135,18 +135,25 @@ def call_ollama(prompt, system_prompt, model, agent_role="system"):
                         print(Style.RESET_ALL)
                         manage_model(model, action="unload")
                         return {"text": full_response, "total_time": total_time, "tokens": tokens}
+
+            print(Fore.RED + "\n[SYSTEM ERROR]: Ollama przerwała generowanie (brak flagi 'done')." + Style.RESET_ALL)
+            manage_model(model, action="unload")
+            return {
+                "text": full_response if full_response else "ERROR: Pusta odpowiedź",
+                "total_time": time.time() - start_time,
+                "tokens": 0
+            }
+
     except Exception as e:
         print(Fore.RED + f"\n!!! BŁĄD API: {e}")
         return {"text": "ERROR", "total_time": 0, "tokens": 0}
 
 
 def select_next_speaker(history, task, agents_config, last_speaker_id):
-    if last_speaker_id == "solver":
-        print(Fore.MAGENTA + "\n[SYSTEM] Solver skończył. Wymuszam Krytyka lub Adwokata Diabła.")
-        pass
     if last_speaker_id == "secretary":
         print(Fore.MAGENTA + "\n[SYSTEM] Sekretarz podsumował. KONIEC.")
         return "finish", {"total_time": 0, "tokens": 0}
+
     if last_speaker_id == "critic":
         try:
             last_msg = history.split("---")[-1].strip().upper()
@@ -156,9 +163,19 @@ def select_next_speaker(history, task, agents_config, last_speaker_id):
         except:
             pass
 
+    devil_count = history.count("Adwokat Diabła")
+    if last_speaker_id == "solver" and devil_count >= 2:
+        print(Fore.MAGENTA + "\n[SYSTEM] Devil wystąpił już 2 razy. Wymuszam Krytyka.")
+        return "critic", {"total_time": 0, "tokens": 0}
+
+    if last_speaker_id == "solver":
+        print(Fore.MAGENTA + "\n[SYSTEM] Solver skończył. Wymuszam Krytyka lub Adwokata Diabła.")
+        available_for_prompt = ["critic", "devil"]
+    else:
+        agent_names = [a['id'] for a in agents_config if a['id'] != 'orchestrator']
+        available_for_prompt = [name for name in agent_names if name != last_speaker_id]
+
     orchestrator_cfg = agents_config[0]
-    agent_names = [a['id'] for a in agents_config if a['id'] != 'orchestrator']
-    available_for_prompt = [name for name in agent_names if name != last_speaker_id]
 
     prompt = f"""
     ZADANIE: {task}
@@ -179,9 +196,10 @@ def select_next_speaker(history, task, agents_config, last_speaker_id):
     print(ROLE_COLORS['orchestrator'] + f"\n[ORCHESTRATOR] Decyduje (Ostatni: {last_speaker_id})...", end="")
     res = call_ollama(prompt, orchestrator_cfg['system_prompt'], orchestrator_cfg['model'], "orchestrator")
     decision = res['text'].strip().lower()
+
     chosen_agent = None
-    for name in agent_names:
-        if name in decision and name != last_speaker_id:
+    for name in available_for_prompt:
+        if name in decision:
             chosen_agent = name
             break
 
@@ -224,7 +242,13 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
     while turn_count < MAX_TURNS:
         turn_count += 1
-        next_agent_id, orch_res = select_next_speaker(chat_history, task_query, agents_config, last_speaker)
+        if turn_count == MAX_TURNS - 1 and last_speaker != "secretary":
+            print(Fore.MAGENTA + "\n[SYSTEM] Osiągnięto limit tur! Wymuszam Sekretarza do podsumowania.")
+            next_agent_id = "secretary"
+            orch_res = {"total_time": 0, "tokens": 0}
+        else:
+            next_agent_id, orch_res = select_next_speaker(chat_history, task_query, agents_config, last_speaker)
+
         total_time += orch_res['total_time']
         total_tokens += orch_res['tokens']
 
@@ -237,7 +261,9 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
         selected_agent = next((a for a in agents_config if a['id'] == next_agent_id), None)
         print_header(f"TURA {turn_count}: {selected_agent['role']}", ROLE_COLORS.get(next_agent_id, Fore.WHITE))
-        agent_input = f"ZADANIE: {task_query}\n\nHISTORIA:\n{chat_history}\n\nJesteś {selected_agent['id']}. Jeśli potrzebujesz narzędzia, użyj formatu:\nSEARCH: zapytanie\n```python\nkod\n```"
+        history_parts = chat_history.split("---")
+        recent_history = "---".join(history_parts[-5:]) if len(history_parts) > 5 else chat_history
+        agent_input = f"ZADANIE: {task_query}\n\nOSTATNIE WYDARZENIA W HISTORII:\n{recent_history}\n\nJesteś {selected_agent['id']}. Jeśli potrzebujesz narzędzia, użyj formatu:\nSEARCH: zapytanie\n```python\nkod\n```"
         agent_res = call_ollama(agent_input, selected_agent['system_prompt'], selected_agent['model'], next_agent_id)
 
         total_time += agent_res['total_time']
@@ -276,6 +302,7 @@ def run_group_chat_loop(task_query, agents_config, task_id):
             snapshot_5 = final_answer
         if turn_count == 10:
             snapshot_10 = final_answer
+
     if not snapshot_5:
         snapshot_5 = final_answer
     if not snapshot_10:
@@ -297,6 +324,7 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
     print_header("KOMISJA SĘDZIOWSKA OCENIA", ROLE_COLORS['judge'])
     JURY_MODELS = ["phi4", "qwen2.5:14b", "gpt-oss:20b"]
     JUDGE_CTX_SIZE = 4096
+    MAX_RETRIES = 2
 
     solo_scores = []
     scores_5 = []
@@ -342,50 +370,77 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
 
     for judge_model in JURY_MODELS:
         print(ROLE_COLORS['judge'] + f"   [JURY: {judge_model}] Ocenia...", end="", flush=True)
-        try:
-            payload = {
-                "model": judge_model,
-                "prompt": prompt_template,
-                "stream": False,
-                "options": {
-                    "temperature": 0.0,
-                    "num_ctx": JUDGE_CTX_SIZE
-                },
-                "format": "json"
-            }
-            resp = requests.post(f"{OLLAMA_API}/generate", json=payload).json()
-            response_text = resp.get('response', '')
-            result = json.loads(response_text)
 
-            s_solo = int(result.get("score_solo", 0))
-            s_5 = int(result.get("score_multi_5", 0))
-            s_10 = int(result.get("score_multi_10", 0))
-            s_fin = int(result.get("score_multi_final", 0))
+        current_prompt = prompt_template
+        success = False
 
-            h_solo = bool(result.get("hallucination_solo", False))
-            h_multi = bool(result.get("hallucination_multi_final", False))
-            reason = result.get("reason", "Brak")
+        for attempt in range(MAX_RETRIES):
+            try:
+                payload = {
+                    "model": judge_model,
+                    "prompt": current_prompt,
+                    "stream": False,
+                    "options": {
+                        # Lekko podnosimy temperaturę przy drugiej próbie, żeby wybić model z pętli błędu
+                        "temperature": 0.0 if attempt == 0 else 0.2,
+                        "num_ctx": JUDGE_CTX_SIZE
+                    },
+                    "format": "json"
+                }
+                resp = requests.post(f"{OLLAMA_API}/generate", json=payload).json()
+                response_text = resp.get('response', '').strip()
 
-            solo_scores.append(s_solo)
-            scores_5.append(s_5)
-            scores_10.append(s_10)
-            scores_final.append(s_fin)
+                if not response_text:
+                    raise ValueError("Pusta odpowiedź od modelu sędziowskiego.")
 
-            hallucination_solo_flags.append(h_solo)
-            hallucination_multi_flags.append(h_multi)
-            jury_reasons.append(f"[{judge_model}]: {reason}")
+                json_match = re.search(r'\{.*?\}', response_text, re.DOTALL)
+                if not json_match:
+                    raise ValueError(f"Brak formatu JSON: {response_text[:40]}...")
 
-            print(f" -> Solo: {s_solo} | Multi(5): {s_5} | Multi(10): {s_10} | Multi(Fin): {s_fin}")
-            manage_model(judge_model, action="unload")
+                result = json.loads(json_match.group(0))
 
-        except Exception as e:
-            print(Fore.RED + f" -> Błąd sędziego {judge_model}: {e}")
+                s_solo = int(result.get("score_solo") or 0)
+                s_5 = int(result.get("score_multi_5") or 0)
+                s_10 = int(result.get("score_multi_10") or 0)
+                s_fin = int(result.get("score_multi_final") or 0)
+
+                h_solo = bool(result.get("hallucination_solo", False))
+                h_multi = bool(result.get("hallucination_multi_final", False))
+                reason = result.get("reason", "Brak")
+
+                solo_scores.append(s_solo)
+                scores_5.append(s_5)
+                scores_10.append(s_10)
+                scores_final.append(s_fin)
+
+                hallucination_solo_flags.append(h_solo)
+                hallucination_multi_flags.append(h_multi)
+                jury_reasons.append(f"[{judge_model}]: {reason}")
+
+                if attempt > 0:
+                    print(Fore.GREEN + f" [NAPRAWIONO W PRÓBIE {attempt + 1}]", end="")
+
+                print(f" -> Solo: {s_solo} | Multi(5): {s_5} | Multi(10): {s_10} | Multi(Fin): {s_fin}")
+                success = True
+                break
+
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    print(Fore.YELLOW + f" -> Błąd: {e}. Zgłaszam do modelu i próbuję ponownie... " + ROLE_COLORS[
+                        'judge'], end="", flush=True)
+                    current_prompt = prompt_template + f"\n\n[SYSTEM ERROR]: Twoja poprzednia odpowiedź wywołała błąd w Pythonie: {e}\nMUSISZ ZWRÓCIĆ WYŁĄCZNIE CZYSTY OBIEKT JSON. Żadnych tekstów wprowadzających!"
+                else:
+                    print(Fore.RED + f" -> Błąd krytyczny sędziego {judge_model}: {e}")
+
+        if not success:
             solo_scores.append(0)
-            scores_5.append(0);
-            scores_10.append(0);
+            scores_5.append(0)
+            scores_10.append(0)
             scores_final.append(0)
-            hallucination_solo_flags.append(False);
+            hallucination_solo_flags.append(False)
             hallucination_multi_flags.append(False)
+
+        manage_model(judge_model, action="unload")
 
     avg_solo = round(sum(solo_scores) / len(solo_scores), 1) if solo_scores else 0
     avg_5 = round(sum(scores_5) / len(scores_5), 1) if scores_5 else 0
@@ -415,15 +470,19 @@ def visualize_results(df):
     if df.empty: return
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle('Solo vs Group Chat - Analiza Zbiorcza', fontsize=16)
+
     avg_scores = [df['score_solo'].mean(), df['score_multi_final'].mean()]
     axes[0, 0].bar(['Solo', 'Group Final'], avg_scores, color=['gray', 'green'])
     axes[0, 0].set_title('Średnie Punkty')
+
     avg_times = df[['solo_time', 'multi_time']].mean()
     axes[0, 1].bar(['Solo', 'Group'], avg_times, color=['gray', 'orange'])
     axes[0, 1].set_title('Średni Czas (s)')
+
     avg_efficiency = df[['solo_token_efficiency', 'multi_token_efficiency']].mean()
     axes[1, 0].bar(['Solo', 'Group'], avg_efficiency, color=['gray', 'purple'])
     axes[1, 0].set_title('Token Efficiency (Pkt / 1k Tokenów)')
+
     stages = ['Tura 5', 'Tura 10', 'Finał']
     scores_evolution = [df['score_multi_5'].mean(), df['score_multi_10'].mean(), df['score_multi_final'].mean()]
     axes[1, 1].plot(stages, scores_evolution, marker='o', color='b', linestyle='-', linewidth=2, markersize=8)
@@ -433,8 +492,44 @@ def visualize_results(df):
 
     plt.tight_layout()
     plt.show()
-
     print("\n" + Fore.CYAN + df[['task_id', 'turns', 'score_multi_final', 'agent_path']].to_string(index=False))
+
+
+def generate_html_log(task_id, run_timestamp, chat_history):
+    html_content = f"""<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Log zadania: {task_id}</title>
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; margin: 20px; }}
+        h2 {{ color: #4a4a4a; border-bottom: 2px solid #ddd; padding-bottom: 10px; }}
+        .message {{ background: #fff; border: 1px solid #e1e4e8; border-radius: 6px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
+        .role {{ font-weight: bold; color: #0056b3; margin-bottom: 10px; font-size: 1.1em; }}
+        .content {{ white-space: pre-wrap; line-height: 1.6; font-size: 0.95em; }}
+    </style>
+</head>
+<body>
+    <h2>Zadanie: {task_id} ({run_timestamp})</h2>
+"""
+    parts = chat_history.split('---')
+    for part in parts:
+        if part.strip():
+            lines = part.strip().split('\n', 1)
+            role = lines[0].strip()
+            content = lines[1].strip() if len(lines) > 1 else ""
+            html_content += f"""
+    <div class="message">
+        <div class="role">{role}</div>
+        <div class="content">{content}</div>
+    </div>
+"""
+    html_content += """
+</body>
+</html>
+"""
+    with open(f"log_{run_timestamp}_{task_id}.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
 
 
 def run_research():
@@ -448,8 +543,10 @@ def run_research():
     for task in tasks:
         print_header(f"ZADANIE: {task['id']}", Fore.WHITE)
         print(Fore.WHITE + ">>> Testowanie modelu SOLO...")
+
         solo_res = call_ollama(task['query'], "Pomocny asystent", MODEL_SOLO, "system")
         group_res = run_group_chat_loop(task['query'], agents, task['id'])
+
         scores = get_judge_score(
             task['query'],
             task['expected_answer'],
@@ -485,21 +582,23 @@ def run_research():
 
         results_data.append(row)
 
-        with open(f"log_{run_timestamp}_{task['id']}.txt", "w", encoding="utf-8") as log_file:
-            log_file.write(group_res.get('chat_history', ''))
+        generate_html_log(task['id'], run_timestamp, group_res.get('chat_history', ''))
 
-    df = pd.DataFrame(results_data)
+        df = pd.DataFrame(results_data)
+        if os.path.exists(EXCEL_FILE):
+            try:
+                with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+            except ValueError:
+                with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a') as writer:
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+        else:
+            with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='w') as writer:
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    if os.path.exists(EXCEL_FILE):
-        with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a') as writer:
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-    else:
-        with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='w') as writer:
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
+        print(Fore.GREEN + f"\n[SYSTEM] Zapisano stan w pliku {EXCEL_FILE} (Arkusz: {sheet_name})")
 
-    print(Fore.GREEN + f"\n[SYSTEM] Wyniki zapisano pomyślnie w arkuszu '{sheet_name}' w pliku {EXCEL_FILE}")
-
-    visualize_results(df)
+    visualize_results(pd.DataFrame(results_data))
 
 
 if __name__ == "__main__":

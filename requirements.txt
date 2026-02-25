@@ -2,4 +2,4 @@ requests
 pandas
 matplotlib
 colorama
-duckduckgo-search
+ddgs
