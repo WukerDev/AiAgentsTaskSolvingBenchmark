@@ -48,5 +48,85 @@
     "id": "task_10_trick_math",
     "query": "Ile ziemti znajduje się w dziurze o średnicy 1 metra i głębokości 5 merów? Oblicz objętość w metrach sześciennych.",
     "expected_answer": "Zero. W dziurze nie ma ziemi (jest pusta). Jeśli model zacznie liczyć objętość walca (pi*r^2*h), to oblał test na zdrowy rozsądek."
+  },
+  {
+    "id": "task_11_log_parsing",
+    "query": "Dany jest wycinek logu SSH: 'Jan 15 10:21:00 server sshd[123]: Failed password for root from 192.168.1.105 port 54321 ssh2\\nJan 15 10:21:05 server sshd[124]: Failed password for admin from 10.0.0.2 port 11111 ssh2\\nJan 15 10:21:12 server sshd[125]: Failed password for root from 192.168.1.105 port 54322 ssh2\\nJan 15 10:21:15 server sshd[126]: Accepted password for root from 192.168.1.105 port 54323 ssh2'. Napisz skrypt, który przeanalizuje ten tekst i zwróci adres IP, który najpierw miał nieudane próby logowania, a potem udaną, oraz policzy ile sekund upłynęło między pierwszą nieudaną a udaną próbą dla tego IP.",
+    "expected_answer": "IP: 192.168.1.105. Czas: 15 sekund (od 10:21:00 do 10:21:15). Model musi użyć regexu lub logiki czasowej w Pythonie, Solo często gubi się w obliczeniach na stringach czasowych."
+  },
+  {
+    "id": "task_12_subnetting",
+    "query": "Jesteś administratorem sieci. Otrzymałeś adres IP 172.16.55.87 z maską /27. Oblicz adres sieci (Network Address), adres rozgłoszeniowy (Broadcast Address) oraz dokładną liczbę dostępnych adresów dla hostów. Nie zgaduj, napisz kod, który to wyliczy.",
+    "expected_answer": "Network: 172.16.55.64. Broadcast: 172.16.55.95. Liczba hostów: 30. (Świetny test na operacje bitowe. Solo LLM często myli przedziały w nietypowych maskach jak /27)."
+  },
+  {
+    "id": "task_13_10000th_prime",
+    "query": "Jaka jest dokładnie dziesięciotysięczna (10000-ta) liczba pierwsza? Użyj Pythona (np. algorytmu Sita Eratostenesa), aby to bezbłędnie wyliczyć.",
+    "expected_answer": "104729. (To klasyczna pułapka na modele Solo. Bez uruchomienia kodu żaden model nie pamięta tej liczby i na 99% wyhalucynuje coś w okolicach 104000)."
+  },
+  {
+    "id": "task_14_crypto_base64_xor",
+    "query": "Rozszyfruj następującą wiadomość. Najpierw zdekoduj ją z Base64: 'SGVsbG9Xb3JsZA==', a następnie wykonaj operację XOR każdego bajtu z kluczem o wartości 42 (dziesiętnie). Zwróć ostateczny wynik jako tekst (znaki ASCII).",
+    "expected_answer": "Wynik to tekst: 'rOFFE}EX^FO'. ('HelloWorld' zdekodowane i z-XOR-owane z 42. Testuje współpracę Coder -> Solver. Solo na pewno źle wykona XOR w pamięci)."
+  },
+  {
+    "id": "task_15_cve_osint",
+    "query": "Wyszukaj w sieci informacje o podatności Log4Shell (CVE-2021-44228). Podaj jej dokładny wynik bazowy CVSS v3.1 oraz w jakiej bibliotece występuje. Zastosuj wyszukiwarkę.",
+    "expected_answer": "Wynik CVSS to 10.0 (Critical). Biblioteka to Apache Log4j (lub Log4j2). (Testuje narzędzie Analyst -> search_web. Solo może znać odpowiedź z wagi, ale zobaczymy czy agent prawidłowo użyje narzędzia, jeśli jest do tego zmuszony)."
+  },
+  {
+    "id": "task_16_obfuscated_code",
+    "query": "Dany jest kod w Pythonie: `print(''.join([chr(ord(c) + 1) for c in 'Vzkd`r']))`. Co dokładnie wypisze ten kod na konsolę? Wykonaj go i podaj wynik.",
+    "expected_answer": "Wypisze 'Waleas'. (To prosty szyfr Cezara przesunięty o 1. Coder musi to uruchomić i przekazać do Solvera. Typowe dla inżynierii wstecznej złośliwego oprogramowania)."
+  },
+  {
+    "id": "task_17_cron_logic",
+    "query": "Masz zdefiniowane zadanie CRON: '*/15 8-16 * * 1-5'. Dzisiaj jest środa, godzina 16:05. Kiedy (dzień tygodnia, godzina i minuta) zadanie wykona się po raz następny? Zastanów się dokładnie nad limitami godzin.",
+    "expected_answer": "Następne wykonanie: Czwartek, godzina 8:00. (Model Solo zazwyczaj odpowie 'środa 16:15' nie zauważając, że przedział '8-16' oznacza wykonania do 16:59 lub 16:00 w zależności od dialektu, ale domyślnie po 16:00 czeka do następnego dozwolonego dnia, czyli czwartku 8:00. Skrypt Pythona z libką 'croniter' dałby pewność)."
+  },
+  {
+    "id": "task_18_json_data_extraction",
+    "query": "Masz listę słowników: [{'os': 'Windows', 'uptime': 120}, {'os': 'Linux', 'uptime': 400}, {'os': 'Windows', 'uptime': 80}, {'os': 'Linux', 'uptime': 600}]. Napisz kod, który pogrupuje te dane według systemu operacyjnego i obliczy średni uptime dla każdego z nich. Zwróć wynik.",
+    "expected_answer": "Windows: 100, Linux: 500. (Testuje umiejętność pisania kodu analitycznego z wykorzystaniem agregacji, klasyczne zadanie dla inżyniera danych/DevOpsa)."
+  },
+  {
+    "id": "task_19_graph_routing",
+    "query": "Mamy sieć routerów połączonych następująco: A-B (waga 4), A-C (waga 2), B-C (waga 5), B-D (waga 10), C-E (waga 3), E-D (waga 4), D-F (waga 11). Jaka jest najkrótsza ścieżka z węzła A do F i jaki jest jej całkowity koszt? Napisz skrypt w Pythonie (używając np. algorytmu Dijkstry), aby to precyzyjnie wyliczyć i podać trasę.",
+    "expected_answer": "Ścieżka: A -> C -> E -> D -> F. Całkowity koszt: 20 (A-C: 2, C-E: 3, E-D: 4, D-F: 11). (Model Solo zazwyczaj gubi się w wagach i zmyśla trasę, np. A-B-D-F. Coder z Pythonem rozwiąże to bezbłędnie, co świetnie wygląda w kontekście IT/Telekomunikacji)."
+  },
+  {
+    "id": "task_20_vigenere_crypto",
+    "query": "Odszyfruj tekst 'LXFOPVEFRNHR' zaszyfrowany klasycznym szyfrem Vigenère'a przy użyciu klucza 'TELDAT'. Napisz i wykonaj kod w Pythonie, który przeprowadzi tę operację matematycznie na znakach ASCII. Zwróć jawny tekst w wielkich literach.",
+    "expected_answer": "SECURESYSTEM. (Szyfry polialfabetyczne to absolutny koszmar dla LLM-ów, ponieważ tokenizatory niszczą strukturę literową. Bez Pythona żaden LLM tego nie rozwiąże poprawnie)."
+  },
+  {
+    "id": "task_21_complex_compound_interest",
+    "query": "Inwestujesz 10 000 PLN. Kapitalizacja odsetek jest MIESIĘCZNA. Roczna stopa procentowa wynosi 5% przez pierwsze 3 lata, a następnie 7% przez kolejne 2 lata. UWAGA: W każdym miesiącu, po naliczeniu odsetek, pobierany jest stały podatek (tzw. Belki) w wysokości 19% TYLKO od wypracowanych w danym miesiącu zysków. Oblicz dokładną kwotę końcową po 5 latach, z dokładnością do dwóch miejsc po przecinku. Użyj Pythona do symulacji miesiąc po miesiącu.",
+    "expected_answer": "12513.56 PLN. (Brak szans dla Solo LLM na wykonanie 60 iteracji pętli z ułamkami i warunkami w samej pamięci. Agent napisze pętlę i poda wynik co do grosza)."
+  },
+  {
+    "id": "task_22_regex_ipv4_validation",
+    "query": "Napisz wyrażenie regularne (Regex) w Pythonie służące do wyciągnięcia TYLKO poprawnych adresów IPv4. Przetestuj je, używając skryptu na poniższym tekście: 'Nasze IP to 192.168.1.1, a nie 256.1.2.3. Mamy też 10.0.0.0 i 127.0.0.1 oraz błąd: 1.2.3.4.5'. Skrypt ma zwrócić listę (array) zawierającą wyłącznie prawidłowe adresy ze stringa.",
+    "expected_answer": "['192.168.1.1', '10.0.0.0', '127.0.0.1']. (Solo model bardzo często wyłapie 256.1.2.3 ignorując limit oktetu do 255, albo chwyci 1.2.3.4 z dłuższego ciągu. Uruchomienie poprawnego Regexu przez agenta gwarantuje sukces)."
+  },
+  {
+    "id": "task_23_live_system_hash",
+    "query": "Napisz i wykonaj kod w Pythonie, który pobierze aktualną datę systemową (dzisiejszą), sformatuje ją rygorystycznie jako YYYY-MM-DD, a następnie wygeneruje z tego ciągu znaków hash SHA-256. Zwróć ten hash. Nie hardcoduj daty w kodzie, niech skrypt sam ją pobierze z systemu.",
+    "expected_answer": "Hash zgodny z aktualną datą (np. dla 2026-02-25 hash SHA-256 to... itd.). (To udowadnia, że agenci mają dostęp do środowiska uruchomieniowego i czasu rzeczywistego, podczas gdy LLM w izolacji używa tylko wiedzy z przed odcięcia treningowego)."
+  },
+  {
+    "id": "task_24_noise_data_sanitization",
+    "query": "Oto zaszumiony ciąg znaków: '1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6'. Chcę, abyś napisał kod, który wyciągnie z niego tylko i wyłącznie wszystkie cyfry parzyste (wliczając 0), następnie zsumuje je ze sobą, a na koniec sprawdzi czy ta suma jest podzielna przez 3. Zwróć sumę oraz wynik testu (True/False).",
+    "expected_answer": "Cyfry parzyste to: 2, 4, 6, 8, 0, 2, 4, 6. Ich suma to 32. 32 nie jest podzielne przez 3, więc wynik to False. (Dla LLM policzenie znaków i operacje na nich to czarna magia ze względu na tokenizację. Python zrobi to 3 linijkami kodu)."
+  },
+  {
+    "id": "task_25_local_finance",
+    "query": "Na podstawie naszych wewnętrznych raportów finansowych za Q3, oblicz dokładną marżę zysku netto firmy w procentach (wzór: zysk / przychód * 100). Znajdź potrzebne dane w lokalnym archiwum i użyj kodu Pythona do wykonania dzielenia.",
+    "expected_answer": "Marża wynosi 25%. (W lokalnej bazie przychód to 1.2M, a koszty 0.9M. Zysk to 0.3M. 0.3 / 1.2 * 100% = 25%. Model Solo wyhalucynuje losowe dane finansowe, a zespół agentów połączy Archiwistę z Coderem)."
+  },
+  {
+    "id": "task_26_local_server_crash",
+    "query": "Mamy awarię serwera! Szybko przeszukaj wewnętrzną bazę dokumentów i podaj mi krok po kroku procedurę awaryjną. Oprócz tego, wyciągnij z bazy i podaj mi aktualne hasło administratora do lokalnej bazy danych, żebym mógł się zalogować.",
+    "expected_answer": "Procedura awaryjna: 1. Restart usługi sshd. 2. Flush iptables. Hasło admina: adm1n_p@ssw0rd_lokalny. (Solo LLM zmyśli standardową procedurę Linuxa i wyhalucynuje fałszywe hasło, co Sędzia natychmiast ukarze 0 punktami za zaprzeczenie wzorcowi)."
   }
 ]
