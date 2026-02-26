@@ -1,132 +1,132 @@
 [
   {
     "id": "task_01_helium",
-    "query": "Siedzisz w szczelnie zamkniętym samochodzie, który gwałtownie przyspiesza do przodu. Trzymasz w ręku balon z helem na sznurku. W którą stronę wychyli się balon względem wnętrza samochodu? Uzasadnij fizycznie.",
-    "expected_answer": "Do przodu. (Zgodnie z wektorem przyspieszenia). Powietrze w aucie jest cięższe od helu i z powodu bezwładności przemieszcza się do tyłu, wypychając lżejszy balon do przodu (gradient ciśnienia)."
+    "query": "You are sitting in a tightly closed car that rapidly accelerates forward. You are holding a helium balloon on a string. Which way will the balloon tilt relative to the inside of the car? Justify physically.",
+    "expected_answer": "Forward. (According to the acceleration vector). The air in the car is heavier than helium and due to inertia moves backward, pushing the lighter balloon forward (pressure gradient)."
   },
   {
     "id": "task_02_monty_hall_100",
-    "query": "Jesteś w teleturnieju. Jest 100 drzwi. Za jednymi jest auto, za 99 są kozy. Wybierasz drzwi nr 1. Prowadzący (który wie, gdzie jest auto) otwiera 98 innych drzwi, za którymi są kozy, zostawiając zamknięte tylko Twoje drzwi (nr 1) i drzwi nr 77. Czy opłaca się zmienić wybór na drzwi nr 77? Jeśli tak, to o ile wzrośnie szansa? Napisz symulację w Pythonie, aby to udowodnić.",
-    "expected_answer": "Tak, opłaca się zmienić. Szansa rośnie z 1% do 99%. (Drzwi nr 1 mają 1% szans, cała reszta miała 99%, a skoro z tej reszty zostało tylko nr 77, to ono przejmuje te 99%). Symulacja powinna to potwierdzić."
+    "query": "You are on a game show. There are 100 doors. Behind one is a car, behind 99 are goats. You choose door no. 1. The host (who knows where the car is) opens 98 other doors revealing goats, leaving only your door (no. 1) and door no. 77 closed. Is it worth changing your choice to door no. 77? If so, by how much does the chance increase? Write a Python simulation to prove it.",
+    "expected_answer": "Yes, it is worth changing. The chance increases from 1% to 99%. (Door no. 1 has a 1% chance, all the rest had 99%, and since out of the rest only no. 77 is left, it inherits that 99%). The simulation should confirm this."
   },
   {
     "id": "task_03_self_reference",
-    "query": "Ile liter ma odpowiedź na to pytanie, jeśli zapiszemy ją słownie w języku polskim (mianownik, małe litery)?",
-    "expected_answer": "Jedenaście. (Słowo 'jedenaście' ma 11 liter. Agent musi zgadywać i sprawdzać w pętli. Błędne: 'dwanaście' - ma 9 liter)."
+    "query": "How many letters does the answer to this question have, if we write it out in words in Polish (nominative case, lowercase letters)?",
+    "expected_answer": "Eleven (Jedenaście). (The Polish word 'jedenaście' has 11 letters. The agent must guess and check in a loop. Incorrect: 'dwanaście' - has 9 letters)."
   },
   {
     "id": "task_04_lcm_problem",
-    "query": "Znajdź najmniejszą liczbę naturalną, która przy dzieleniu przez 2 daje resztę 1, przy dzieleniu przez 3 daje resztę 2, przez 4 daje 3, przez 5 daje 4, przez 6 daje 5, przez 7 daje 6, przez 8 daje 7, przez 9 daje 8, a przez 10 daje 9.",
-    "expected_answer": "2519. (Szukana liczba to NWW(1,2...10) - 1. NWW dla 1-10 to 2520. 2520 - 1 = 2519. Coder powinien to obliczyć)."
+    "query": "Find the smallest natural number which when divided by 2 leaves a remainder of 1, when divided by 3 leaves a remainder of 2, by 4 leaves 3, by 5 leaves 4, by 6 leaves 5, by 7 leaves 6, by 8 leaves 7, by 9 leaves 8, and by 10 leaves 9.",
+    "expected_answer": "2519. (The requested number is LCM(1,2...10) - 1. LCM for 1-10 is 2520. 2520 - 1 = 2519. The Coder should calculate this)."
   },
   {
     "id": "task_05_strawberry",
-    "query": "Wypisz wszystkie liczby pierwsze z zakresu od 1 do 100, które zawierają cyfrę 3. Następnie oblicz sumę tych liczb. Użyj Pythona, nie zgaduj.",
-    "expected_answer": "Suma: 304. Liczby: 3, 13, 23, 31, 37, 43, 53, 73, 83. (Modele często zapominają o 3 lub 31, albo mylą liczby pierwsze)."
+    "query": "Print all prime numbers from 1 to 100 that contain the digit 3. Then calculate the sum of these numbers. Use Python, do not guess.",
+    "expected_answer": "Sum: 304. Numbers: 3, 13, 23, 31, 37, 43, 53, 73, 83. (Models often forget about 3 or 31, or confuse prime numbers)."
   },
   {
     "id": "task_06_relativity",
-    "query": "Jesteś na równiku i biegniesz na zachód z prędkością, z jaką Ziemia obraca się wokół własnej osi. Jak zmieni się twoja waga w porównaniu do stania w miejscu? Czy staniesz się lżejszy, cięższy, czy waga się nie zmieni?",
-    "expected_answer": "Staniesz się cięższy. (Stojąc na równiku, siła odśrodkowa Ziemi cię 'wyrzuca', zmniejszając wagę. Biegnąc na zachód z prędkością obrotu, niwelujesz ruch obrotowy Ziemi względem środka planety, więc siła odśrodkowa znika -> nacisk na wagę rośnie)."
+    "query": "You are on the equator and running west at the speed the Earth rotates around its own axis. How will your weight change compared to standing still? Will you become lighter, heavier, or will your weight not change?",
+    "expected_answer": "You will become heavier. (Standing on the equator, the Earth's centrifugal force 'throws' you outward, decreasing your weight. By running west at the speed of rotation, you cancel out the Earth's rotational motion relative to the center of the planet, so the centrifugal force disappears -> pressure on the scale increases)."
   },
   {
     "id": "task_07_code_injection",
-    "query": "Napisz funkcję w Pythonie, która przyjmuje listę stringów i zwraca te, które są palindromami. Ale uwaga: string 'kajak' ma być traktowany jako NIE-palindrom (wyjątek). Przetestuj dla listy ['ala', 'kajak', 'zakaz', 'potop'].",
-    "expected_answer": "Lista wynikowa: ['ala', 'zakaz', 'potop']. (Model musi uwzględnić 'hardcoded exception' w kodzie, a nie tylko ogólną zasadę palindromu)."
+    "query": "Write a Python function that takes a list of strings and returns those that are palindromes. But note: the string 'kajak' is to be treated as a NON-palindrome (exception). Test it for the list ['ala', 'kajak', 'zakaz', 'potop'].",
+    "expected_answer": "Result list: ['ala', 'zakaz', 'potop']. (The model must include the hardcoded exception in the code, and not just the general palindrome rule)."
   },
   {
     "id": "task_08_probability_boy",
-    "query": "Pan Kowalski ma dwoje dzieci. Przynajmniej jedno z nich jest chłopcem urodzonym we wtorek. Jakie jest prawdopodobieństwo, że oboje są chłopcami? Odpowiedź uzasadnij kodem lub dokładną logiką (Paradoks chłopca i dziewczynki).",
-    "expected_answer": "13/27 (ok. 48.1%). To wariant paradoksu. Zwykłe 'przynajmniej jeden chłopiec' daje 1/3, ale dodanie 'urodzony we wtorek' zmienia przestrzeń zdarzeń. Coder powinien zrobić symulację Monte Carlo."
+    "query": "Mr. Kowalski has two children. At least one of them is a boy born on a Tuesday. What is the probability that both are boys? Justify the answer with code or exact logic (Boy or Girl paradox).",
+    "expected_answer": "13/27 (approx. 48.1%). This is a variant of the paradox. A simple 'at least one boy' gives 1/3, but adding 'born on a Tuesday' changes the event space. The Coder should run a Monte Carlo simulation."
   },
   {
     "id": "task_09_logic_grid",
-    "query": "Adam, Bogdan i Cezary są: programistą, grafikiem i testerem (w innej kolejności). Jeśli Adam jest programistą, to Bogdan jest grafikiem. Jeśli Adam jest grafikiem, to Bogdan jest testerem. Jeśli Bogdan nie jest programistą, to Cezary jest grafikiem. Kim jest Adam?",
-    "expected_answer": "Adam jest testerem. (Wymaga rozpisania tabeli prawdy. Coder może napisać skrypt sprawdzający wszystkie permutacje)."
+    "query": "Adam, Bogdan, and Cezary are: a programmer, a graphic designer, and a tester (in no particular order). If Adam is a programmer, then Bogdan is a graphic designer. If Adam is a graphic designer, then Bogdan is a tester. If Bogdan is not a programmer, then Cezary is a graphic designer. Who is Adam?",
+    "expected_answer": "Adam is a tester. (Requires mapping out a truth table. The Coder can write a script checking all permutations)."
   },
   {
     "id": "task_10_trick_math",
-    "query": "Ile ziemti znajduje się w dziurze o średnicy 1 metra i głębokości 5 merów? Oblicz objętość w metrach sześciennych.",
-    "expected_answer": "Zero. W dziurze nie ma ziemi (jest pusta). Jeśli model zacznie liczyć objętość walca (pi*r^2*h), to oblał test na zdrowy rozsądek."
+    "query": "How much dirt is in a hole with a diameter of 1 meter and a depth of 5 meters? Calculate the volume in cubic meters.",
+    "expected_answer": "Zero. There is no dirt in a hole (it is empty). If the model starts calculating the volume of a cylinder (pi*r^2*h), it failed the common sense test."
   },
   {
     "id": "task_11_log_parsing",
-    "query": "Dany jest wycinek logu SSH: 'Jan 15 10:21:00 server sshd[123]: Failed password for root from 192.168.1.105 port 54321 ssh2\\nJan 15 10:21:05 server sshd[124]: Failed password for admin from 10.0.0.2 port 11111 ssh2\\nJan 15 10:21:12 server sshd[125]: Failed password for root from 192.168.1.105 port 54322 ssh2\\nJan 15 10:21:15 server sshd[126]: Accepted password for root from 192.168.1.105 port 54323 ssh2'. Napisz skrypt, który przeanalizuje ten tekst i zwróci adres IP, który najpierw miał nieudane próby logowania, a potem udaną, oraz policzy ile sekund upłynęło między pierwszą nieudaną a udaną próbą dla tego IP.",
-    "expected_answer": "IP: 192.168.1.105. Czas: 15 sekund (od 10:21:00 do 10:21:15). Model musi użyć regexu lub logiki czasowej w Pythonie, Solo często gubi się w obliczeniach na stringach czasowych."
+    "query": "Given is an SSH log snippet: 'Jan 15 10:21:00 server sshd[123]: Failed password for root from 192.168.1.105 port 54321 ssh2\\nJan 15 10:21:05 server sshd[124]: Failed password for admin from 10.0.0.2 port 11111 ssh2\\nJan 15 10:21:12 server sshd[125]: Failed password for root from 192.168.1.105 port 54322 ssh2\\nJan 15 10:21:15 server sshd[126]: Accepted password for root from 192.168.1.105 port 54323 ssh2'. Write a script that parses this text and returns the IP address that first had failed login attempts and then a successful one, and count how many seconds elapsed between the first failed and the successful attempt for that IP.",
+    "expected_answer": "IP: 192.168.1.105. Time: 15 seconds (from 10:21:00 to 10:21:15). The model must use regex or time logic in Python, Solo often gets lost calculating time strings."
   },
   {
     "id": "task_12_subnetting",
-    "query": "Jesteś administratorem sieci. Otrzymałeś adres IP 172.16.55.87 z maską /27. Oblicz adres sieci (Network Address), adres rozgłoszeniowy (Broadcast Address) oraz dokładną liczbę dostępnych adresów dla hostów. Nie zgaduj, napisz kod, który to wyliczy.",
-    "expected_answer": "Network: 172.16.55.64. Broadcast: 172.16.55.95. Liczba hostów: 30. (Świetny test na operacje bitowe. Solo LLM często myli przedziały w nietypowych maskach jak /27)."
+    "query": "You are a network administrator. You received the IP address 172.16.55.87 with a /27 mask. Calculate the Network Address, Broadcast Address, and the exact number of available host addresses. Do not guess, write code to calculate this.",
+    "expected_answer": "Network: 172.16.55.64. Broadcast: 172.16.55.95. Number of hosts: 30. (A great test for bitwise operations. Solo LLMs often confuse ranges in unusual masks like /27)."
   },
   {
     "id": "task_13_10000th_prime",
-    "query": "Jaka jest dokładnie dziesięciotysięczna (10000-ta) liczba pierwsza? Użyj Pythona (np. algorytmu Sita Eratostenesa), aby to bezbłędnie wyliczyć.",
-    "expected_answer": "104729. (To klasyczna pułapka na modele Solo. Bez uruchomienia kodu żaden model nie pamięta tej liczby i na 99% wyhalucynuje coś w okolicach 104000)."
+    "query": "What is exactly the ten-thousandth (10000th) prime number? Use Python (e.g., the Sieve of Eratosthenes algorithm) to calculate this flawlessly.",
+    "expected_answer": "104729. (This is a classic trap for Solo models. Without running the code, no model remembers this number and will 99% hallucinate something around 104000)."
   },
   {
     "id": "task_14_crypto_base64_xor",
-    "query": "Rozszyfruj następującą wiadomość. Najpierw zdekoduj ją z Base64: 'SGVsbG9Xb3JsZA==', a następnie wykonaj operację XOR każdego bajtu z kluczem o wartości 42 (dziesiętnie). Zwróć ostateczny wynik jako tekst (znaki ASCII).",
-    "expected_answer": "Wynik to tekst: 'rOFFE}EX^FO'. ('HelloWorld' zdekodowane i z-XOR-owane z 42. Testuje współpracę Coder -> Solver. Solo na pewno źle wykona XOR w pamięci)."
+    "query": "Decrypt the following message. First decode it from Base64: 'SGVsbG9Xb3JsZA==', and then perform an XOR operation on each byte with a key value of 42 (decimal). Return the final result as text (ASCII characters).",
+    "expected_answer": "The result is the text: 'rOFFE}EX^FO'. ('HelloWorld' decoded and XORed with 42. Tests Coder -> Solver cooperation. Solo will definitely do the XOR incorrectly from memory)."
   },
   {
     "id": "task_15_cve_osint",
-    "query": "Wyszukaj w sieci informacje o podatności Log4Shell (CVE-2021-44228). Podaj jej dokładny wynik bazowy CVSS v3.1 oraz w jakiej bibliotece występuje. Zastosuj wyszukiwarkę.",
-    "expected_answer": "Wynik CVSS to 10.0 (Critical). Biblioteka to Apache Log4j (lub Log4j2). (Testuje narzędzie Analyst -> search_web. Solo może znać odpowiedź z wagi, ale zobaczymy czy agent prawidłowo użyje narzędzia, jeśli jest do tego zmuszony)."
+    "query": "Search the web for information about the Log4Shell vulnerability (CVE-2021-44228). Provide its exact CVSS v3.1 base score and in which library it occurs. Use the search engine.",
+    "expected_answer": "The CVSS score is 10.0 (Critical). The library is Apache Log4j (or Log4j2). (Tests the Analyst -> search_web tool. Solo might know the answer from its weights, but we will see if the agent correctly uses the tool when forced to)."
   },
   {
     "id": "task_16_obfuscated_code",
-    "query": "Dany jest kod w Pythonie: `print(''.join([chr(ord(c) + 1) for c in 'Vzkd`r']))`. Co dokładnie wypisze ten kod na konsolę? Wykonaj go i podaj wynik.",
-    "expected_answer": "Wypisze 'Waleas'. (To prosty szyfr Cezara przesunięty o 1. Coder musi to uruchomić i przekazać do Solvera. Typowe dla inżynierii wstecznej złośliwego oprogramowania)."
+    "query": "Given the following Python code: `print(''.join([chr(ord(c) + 1) for c in 'Vzkd`r']))`. What exactly will this code print to the console? Execute it and provide the result.",
+    "expected_answer": "It will print 'Waleas'. (This is a simple Caesar cipher shifted by 1. The Coder must run it and pass it to the Solver. Typical for malware reverse engineering)."
   },
   {
     "id": "task_17_cron_logic",
-    "query": "Masz zdefiniowane zadanie CRON: '*/15 8-16 * * 1-5'. Dzisiaj jest środa, godzina 16:05. Kiedy (dzień tygodnia, godzina i minuta) zadanie wykona się po raz następny? Zastanów się dokładnie nad limitami godzin.",
-    "expected_answer": "Następne wykonanie: Czwartek, godzina 8:00. (Model Solo zazwyczaj odpowie 'środa 16:15' nie zauważając, że przedział '8-16' oznacza wykonania do 16:59 lub 16:00 w zależności od dialektu, ale domyślnie po 16:00 czeka do następnego dozwolonego dnia, czyli czwartku 8:00. Skrypt Pythona z libką 'croniter' dałby pewność)."
+    "query": "You have a defined CRON job: '*/15 8-16 * * 1-5'. Today is Wednesday, the time is 16:05. When (day of the week, hour, and minute) will the job run next? Think carefully about the hour limits.",
+    "expected_answer": "Next run: Thursday, 8:00 AM. (A Solo model will usually answer 'Wednesday 16:15' failing to notice that the '8-16' range means executions up to 16:59 or 16:00 depending on the dialect, but defaulting past 16:00 it waits for the next allowed day, which is Thursday 8:00. A Python script with the 'croniter' lib would provide certainty)."
   },
   {
     "id": "task_18_json_data_extraction",
-    "query": "Masz listę słowników: [{'os': 'Windows', 'uptime': 120}, {'os': 'Linux', 'uptime': 400}, {'os': 'Windows', 'uptime': 80}, {'os': 'Linux', 'uptime': 600}]. Napisz kod, który pogrupuje te dane według systemu operacyjnego i obliczy średni uptime dla każdego z nich. Zwróć wynik.",
-    "expected_answer": "Windows: 100, Linux: 500. (Testuje umiejętność pisania kodu analitycznego z wykorzystaniem agregacji, klasyczne zadanie dla inżyniera danych/DevOpsa)."
+    "query": "You have a list of dictionaries: [{'os': 'Windows', 'uptime': 120}, {'os': 'Linux', 'uptime': 400}, {'os': 'Windows', 'uptime': 80}, {'os': 'Linux', 'uptime': 600}]. Write code that groups this data by operating system and calculates the average uptime for each. Return the result.",
+    "expected_answer": "Windows: 100, Linux: 500. (Tests the ability to write analytical code using aggregation, a classic task for a Data Engineer/DevOps)."
   },
   {
     "id": "task_19_graph_routing",
-    "query": "Mamy sieć routerów połączonych następująco: A-B (waga 4), A-C (waga 2), B-C (waga 5), B-D (waga 10), C-E (waga 3), E-D (waga 4), D-F (waga 11). Jaka jest najkrótsza ścieżka z węzła A do F i jaki jest jej całkowity koszt? Napisz skrypt w Pythonie (używając np. algorytmu Dijkstry), aby to precyzyjnie wyliczyć i podać trasę.",
-    "expected_answer": "Ścieżka: A -> C -> E -> D -> F. Całkowity koszt: 20 (A-C: 2, C-E: 3, E-D: 4, D-F: 11). (Model Solo zazwyczaj gubi się w wagach i zmyśla trasę, np. A-B-D-F. Coder z Pythonem rozwiąże to bezbłędnie, co świetnie wygląda w kontekście IT/Telekomunikacji)."
+    "query": "We have a network of routers connected as follows: A-B (weight 4), A-C (weight 2), B-C (weight 5), B-D (weight 10), C-E (weight 3), E-D (weight 4), D-F (weight 11). What is the shortest path from node A to F and what is its total cost? Write a Python script (using e.g., Dijkstra's algorithm) to precisely calculate this and provide the route.",
+    "expected_answer": "Path: A -> C -> E -> D -> F. Total cost: 20 (A-C: 2, C-E: 3, E-D: 4, D-F: 11). (A Solo model usually gets lost in the weights and makes up a route, e.g., A-B-D-F. A Coder with Python will solve this flawlessly, which looks great in an IT/Telecom context)."
   },
   {
     "id": "task_20_vigenere_crypto",
-    "query": "Odszyfruj tekst 'LXFOPVEFRNHR' zaszyfrowany klasycznym szyfrem Vigenère'a przy użyciu klucza 'TELDAT'. Napisz i wykonaj kod w Pythonie, który przeprowadzi tę operację matematycznie na znakach ASCII. Zwróć jawny tekst w wielkich literach.",
-    "expected_answer": "SECURESYSTEM. (Szyfry polialfabetyczne to absolutny koszmar dla LLM-ów, ponieważ tokenizatory niszczą strukturę literową. Bez Pythona żaden LLM tego nie rozwiąże poprawnie)."
+    "query": "Decrypt the text 'LXFOPVEFRNHR' encrypted with the classic Vigenère cipher using the key 'TELDAT'. Write and execute Python code that performs this mathematical operation on ASCII characters. Return the plaintext in uppercase letters.",
+    "expected_answer": "SECURESYSTEM. (Polyalphabetic ciphers are an absolute nightmare for LLMs because tokenizers destroy the letter structure. Without Python, no LLM will solve this correctly)."
   },
   {
     "id": "task_21_complex_compound_interest",
-    "query": "Inwestujesz 10 000 PLN. Kapitalizacja odsetek jest MIESIĘCZNA. Roczna stopa procentowa wynosi 5% przez pierwsze 3 lata, a następnie 7% przez kolejne 2 lata. UWAGA: W każdym miesiącu, po naliczeniu odsetek, pobierany jest stały podatek (tzw. Belki) w wysokości 19% TYLKO od wypracowanych w danym miesiącu zysków. Oblicz dokładną kwotę końcową po 5 latach, z dokładnością do dwóch miejsc po przecinku. Użyj Pythona do symulacji miesiąc po miesiącu.",
-    "expected_answer": "12513.56 PLN. (Brak szans dla Solo LLM na wykonanie 60 iteracji pętli z ułamkami i warunkami w samej pamięci. Agent napisze pętlę i poda wynik co do grosza)."
+    "query": "You invest 10,000 PLN. Interest capitalization is MONTHLY. The annual interest rate is 5% for the first 3 years, and then 7% for the next 2 years. NOTE: Every month, after interest is calculated, a flat tax (so-called Belka tax) of 19% is deducted ONLY from the profits earned in that given month. Calculate the exact final amount after 5 years, accurate to two decimal places. Use Python to simulate month by month.",
+    "expected_answer": "12513.56 PLN. (Zero chance for a Solo LLM to perform 60 loop iterations with fractions and conditions entirely in memory. The Agent will write a loop and provide the result down to the penny)."
   },
   {
     "id": "task_22_regex_ipv4_validation",
-    "query": "Napisz wyrażenie regularne (Regex) w Pythonie służące do wyciągnięcia TYLKO poprawnych adresów IPv4. Przetestuj je, używając skryptu na poniższym tekście: 'Nasze IP to 192.168.1.1, a nie 256.1.2.3. Mamy też 10.0.0.0 i 127.0.0.1 oraz błąd: 1.2.3.4.5'. Skrypt ma zwrócić listę (array) zawierającą wyłącznie prawidłowe adresy ze stringa.",
-    "expected_answer": "['192.168.1.1', '10.0.0.0', '127.0.0.1']. (Solo model bardzo często wyłapie 256.1.2.3 ignorując limit oktetu do 255, albo chwyci 1.2.3.4 z dłuższego ciągu. Uruchomienie poprawnego Regexu przez agenta gwarantuje sukces)."
+    "query": "Write a Regular Expression (Regex) in Python to extract ONLY valid IPv4 addresses. Test it using a script on the following text: 'Our IP is 192.168.1.1, and not 256.1.2.3. We also have 10.0.0.0 and 127.0.0.1 as well as an error: 1.2.3.4.5'. The script should return a list (array) containing exclusively the correct addresses from the string.",
+    "expected_answer": "['192.168.1.1', '10.0.0.0', '127.0.0.1']. (A Solo model will very often catch 256.1.2.3 ignoring the 255 octet limit, or grab 1.2.3.4 from the longer string. Running a proper Regex by the agent guarantees success)."
   },
   {
     "id": "task_23_live_system_hash",
-    "query": "Napisz i wykonaj kod w Pythonie, który pobierze aktualną datę systemową (dzisiejszą), sformatuje ją rygorystycznie jako YYYY-MM-DD, a następnie wygeneruje z tego ciągu znaków hash SHA-256. Zwróć ten hash. Nie hardcoduj daty w kodzie, niech skrypt sam ją pobierze z systemu.",
-    "expected_answer": "Hash zgodny z aktualną datą (np. dla 2026-02-25 hash SHA-256 to... itd.). (To udowadnia, że agenci mają dostęp do środowiska uruchomieniowego i czasu rzeczywistego, podczas gdy LLM w izolacji używa tylko wiedzy z przed odcięcia treningowego)."
+    "query": "Write and execute Python code that fetches the current system date (today's), strictly formats it as YYYY-MM-DD, and then generates a SHA-256 hash from this string. Return this hash. Do not hardcode the date in the code, let the script fetch it from the system itself.",
+    "expected_answer": "A hash matching the current date (e.g., for 2026-02-25 the SHA-256 hash is... etc.). (This proves that agents have access to the runtime environment and real-time, whereas an isolated LLM only uses knowledge from before the training cutoff)."
   },
   {
     "id": "task_24_noise_data_sanitization",
-    "query": "Oto zaszumiony ciąg znaków: '1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6'. Chcę, abyś napisał kod, który wyciągnie z niego tylko i wyłącznie wszystkie cyfry parzyste (wliczając 0), następnie zsumuje je ze sobą, a na koniec sprawdzi czy ta suma jest podzielna przez 3. Zwróć sumę oraz wynik testu (True/False).",
-    "expected_answer": "Cyfry parzyste to: 2, 4, 6, 8, 0, 2, 4, 6. Ich suma to 32. 32 nie jest podzielne przez 3, więc wynik to False. (Dla LLM policzenie znaków i operacje na nich to czarna magia ze względu na tokenizację. Python zrobi to 3 linijkami kodu)."
+    "query": "Here is a noisy string: '1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6'. I want you to write code that extracts only and exclusively all even digits from it (including 0), then sums them together, and finally checks if this sum is divisible by 3. Return the sum and the test result (True/False).",
+    "expected_answer": "The even digits are: 2, 4, 6, 8, 0, 2, 4, 6. Their sum is 32. 32 is not divisible by 3, so the result is False. (For an LLM, counting characters and performing operations on them is black magic due to tokenization. Python will do this in 3 lines of code)."
   },
   {
     "id": "task_25_local_finance",
-    "query": "Na podstawie naszych wewnętrznych raportów finansowych za Q3, oblicz dokładną marżę zysku netto firmy w procentach (wzór: zysk / przychód * 100). Znajdź potrzebne dane w lokalnym archiwum i użyj kodu Pythona do wykonania dzielenia.",
-    "expected_answer": "Marża wynosi 25%. (W lokalnej bazie przychód to 1.2M, a koszty 0.9M. Zysk to 0.3M. 0.3 / 1.2 * 100% = 25%. Model Solo wyhalucynuje losowe dane finansowe, a zespół agentów połączy Archiwistę z Coderem)."
+    "query": "Based on our internal financial reports for Q3, calculate the exact net profit margin of the company in percentages (formula: profit / revenue * 100). Find the necessary data in the local archive and use Python code to perform the division.",
+    "expected_answer": "The margin is 25%. (In the local database, revenue is 1.2M, and costs are 0.9M. Profit is 0.3M. 0.3 / 1.2 * 100% = 25%. A Solo model will hallucinate random financial data, while the agent team will connect the Archivist with the Coder)."
   },
   {
     "id": "task_26_local_server_crash",
-    "query": "Mamy awarię serwera! Szybko przeszukaj wewnętrzną bazę dokumentów i podaj mi krok po kroku procedurę awaryjną. Oprócz tego, wyciągnij z bazy i podaj mi aktualne hasło administratora do lokalnej bazy danych, żebym mógł się zalogować.",
-    "expected_answer": "Procedura awaryjna: 1. Restart usługi sshd. 2. Flush iptables. Hasło admina: adm1n_p@ssw0rd_lokalny. (Solo LLM zmyśli standardową procedurę Linuxa i wyhalucynuje fałszywe hasło, co Sędzia natychmiast ukarze 0 punktami za zaprzeczenie wzorcowi)."
+    "query": "We have a server crash! Quickly search the internal document database and provide the step-by-step emergency procedure. Additionally, extract and give me the current administrator password to the local database so I can log in.",
+    "expected_answer": "Emergency procedure: 1. Restart the sshd service. 2. Flush iptables. Admin password: adm1n_p@ssw0rd_lokalny. (A Solo LLM will make up a standard Linux procedure and hallucinate a fake password, which the Judge will immediately penalize with 0 points for contradicting the key/expected answer)."
   }
 ]

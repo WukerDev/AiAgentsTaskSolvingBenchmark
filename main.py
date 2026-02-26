@@ -2,6 +2,7 @@ import contextlib
 import requests
 import json
 import time
+import queue
 import os
 import re
 import multiprocessing
@@ -16,19 +17,20 @@ init(autoreset=True)
 
 OLLAMA_API = "http://localhost:11434/api"
 MODEL_SOLO = "qwen2.5:14b"
-EXCEL_FILE = "badanie_groupchat_wyniki.xlsx"
+EXCEL_FILE = "groupchat_research_results.xlsx"
 LOCAL_DB_FILE = "local_database.txt"
 MAX_TURNS = 15
 MAX_SOLO_TURNS = 5
 GLOBAL_SEED = 2026
 
+# Initialize local database with English content
 if not os.path.exists(LOCAL_DB_FILE):
     with open(LOCAL_DB_FILE, "w", encoding="utf-8") as f:
-        f.write("--- LOKALNA BAZA WIEDZY ---\n")
-        f.write("Projekt_Gamma status: Krytyczny. Kod dostępu: 778899\n")
-        f.write("Raport finansowy Q3: Przychód 1.2M PLN, Koszty 0.9M PLN.\n")
-        f.write("Procedura awaryjna serwera: restart usługi sshd, następnie flush iptables.\n")
-        f.write("Hasło admina bazy to: adm1n_p@ssw0rd_lokalny\n")
+        f.write("--- LOCAL KNOWLEDGE BASE ---\n")
+        f.write("Project_Gamma status: Critical. Access code: 778899\n")
+        f.write("Q3 Financial Report: Revenue 1.2M PLN, Costs 0.9M PLN.\n")
+        f.write("Server emergency procedure: restart sshd service, then flush iptables.\n")
+        f.write("Database admin password is: adm1n_p@ssw0rd_local\n")
 
 ROLE_COLORS = {
     "orchestrator": Fore.MAGENTA + Style.BRIGHT,
@@ -51,7 +53,7 @@ PRICE_PER_1M_TOKENS = {
     "gemma2:9b": 0.50,
     "gemma2:2b": 0.15,
     "llama3.1:8b": 0.50,
-    "gpt-oss:20b": 3.00,
+    "deepseek-r1:14b": 3.00,
     "phi4": 0.20
 }
 
@@ -61,67 +63,76 @@ def calculate_cost(model_name, tokens):
     return (tokens / 1000000) * price
 
 
-def run_code_with_timeout(code, queue):
+def run_code_with_timeout(code, queue_obj):
     buffer = io.StringIO()
     try:
-        with contextlib.redirect_stdout(buffer):
+        with contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
             exec(code, {"__name__": "__main__", "math": __import__("math"), "random": __import__("random")})
-        queue.put(buffer.getvalue() or "[Kod wykonany poprawnie]")
-    except Exception as e:
-        queue.put(f"Błąd wykonania: {e}")
+
+        output = buffer.getvalue()
+        queue_obj.put(output if output else "[Code executed successfully]")
+
+    except BaseException as e:
+        output = buffer.getvalue()
+        queue_obj.put(output + f"\n[Terminated/Error: {type(e).__name__}]: {e}")
 
 
 def execute_python_code(code, timeout=10):
     start_t = time.time()
-    print(ROLE_COLORS["tool"] + f" [TOOL] Uruchamiam kod Python (timeout {timeout}s)... ", end="")
-    queue = multiprocessing.Queue()
-    p = multiprocessing.Process(target=run_code_with_timeout, args=(code, queue))
+    print(ROLE_COLORS["tool"] + f" [TOOL] Running Python code (timeout {timeout}s)... ", end="")
+
+    queue_obj = multiprocessing.Queue()
+    p = multiprocessing.Process(target=run_code_with_timeout, args=(code, queue_obj))
     p.start()
     p.join(timeout)
 
     if p.is_alive():
         p.terminate()
         p.join()
-        result = f"BŁĄD: Przekroczono limit czasu ({timeout}s)!"
+        result = f"ERROR: Time limit exceeded ({timeout}s)!"
     else:
-        result = queue.get()
+        try:
+            result = queue_obj.get(timeout=1)
+        except queue.Empty:
+            result = "CRITICAL ERROR: Process terminated unexpectedly without returning a result (e.g., critical memory error)."
 
     execution_time = time.time() - start_t
-    print(f"Wynik: {result[:50]}... ({execution_time:.2f}s)" + Style.RESET_ALL)
+    safe_result_preview = result[:50].replace('\n', ' ')
+    print(f"Result: {safe_result_preview}... ({execution_time:.2f}s)" + Style.RESET_ALL)
     return result, execution_time
 
 
 def search_web(query):
     start_t = time.time()
-    print(ROLE_COLORS["tool"] + f" [TOOL] Szukam w sieci: '{query}'... ", end="")
+    print(ROLE_COLORS["tool"] + f" [TOOL] Searching the web: '{query}'... ", end="")
     try:
         results = DDGS().text(query, max_results=3)
         if results:
             summary = "\n".join([f"- {r['title']}: {r['body']}" for r in results])
         else:
-            summary = "Brak wyników."
+            summary = "No results found."
     except Exception as e:
-        summary = f"Błąd wyszukiwania: {e}"
+        summary = f"Search error: {e}"
 
     execution_time = time.time() - start_t
-    print(f"Gotowe. ({execution_time:.2f}s)" + Style.RESET_ALL)
+    print(f"Done. ({execution_time:.2f}s)" + Style.RESET_ALL)
     return summary, execution_time
 
 
 def search_local_docs(query):
     start_t = time.time()
-    print(ROLE_COLORS["tool"] + f" [TOOL] Szukam w lokalnej bazie danych: '{query}'... ", end="")
+    print(ROLE_COLORS["tool"] + f" [TOOL] Searching local database: '{query}'... ", end="")
     try:
         with open(LOCAL_DB_FILE, "r", encoding="utf-8") as f:
             lines = f.readlines()
         query_terms = query.lower().split()
         results = [line.strip() for line in lines if all(term in line.lower() for term in query_terms)]
-        summary = "\n".join(results) if results else "Brak wyników w lokalnej bazie dla tego zapytania."
+        summary = "\n".join(results) if results else "No results in the local database for this query."
     except Exception as e:
-        summary = f"Błąd odczytu bazy: {e}"
+        summary = f"Database read error: {e}"
 
     execution_time = time.time() - start_t
-    print(f"Gotowe. ({execution_time:.2f}s)" + Style.RESET_ALL)
+    print(f"Done. ({execution_time:.2f}s)" + Style.RESET_ALL)
     return summary[:2000], execution_time
 
 
@@ -141,7 +152,7 @@ def manage_model(model_name, action="load"):
 
 def call_ollama(prompt, system_prompt, model, agent_role="system"):
     text_color = ROLE_COLORS.get(agent_role, Fore.WHITE)
-    print(text_color + f"   [{model}] Generuje...", end=" ", flush=True)
+    print(text_color + f"   [{model}] Generating...", end=" ", flush=True)
 
     payload = {
         "model": model,
@@ -174,7 +185,7 @@ def call_ollama(prompt, system_prompt, model, agent_role="system"):
                     full_response += token
 
                     if len(full_response) > MAX_CHARS:
-                        print(Fore.RED + "\n[SYSTEM: PRZERWANO - ZA DŁUGA WYPOWIEDŹ]" + Style.RESET_ALL)
+                        print(Fore.RED + "\n[SYSTEM: INTERRUPTED - RESPONSE TOO LONG]" + Style.RESET_ALL)
                         manage_model(model, action="unload")
                         return {"text": full_response, "generation_time": time.time() - start_time, "tokens": 0,
                                 "cost": 0}
@@ -188,17 +199,17 @@ def call_ollama(prompt, system_prompt, model, agent_role="system"):
                         return {"text": full_response, "generation_time": generation_time, "tokens": tokens,
                                 "cost": cost}
 
-            print(Fore.RED + "\n[SYSTEM ERROR]: Ollama przerwała generowanie (brak flagi 'done')." + Style.RESET_ALL)
+            print(Fore.RED + "\n[SYSTEM ERROR]: Ollama interrupted generation (missing 'done' flag)." + Style.RESET_ALL)
             manage_model(model, action="unload")
             return {
-                "text": full_response if full_response else "ERROR: Pusta odpowiedź",
+                "text": full_response if full_response else "ERROR: Empty response",
                 "generation_time": time.time() - start_time,
                 "tokens": 0,
                 "cost": 0
             }
 
     except Exception as e:
-        print(Fore.RED + f"\n!!! BŁĄD API: {e}")
+        print(Fore.RED + f"\n!!! API ERROR: {e}")
         return {"text": "ERROR", "generation_time": 0, "tokens": 0, "cost": 0}
 
 
@@ -213,7 +224,7 @@ def process_tool_calls(response_text):
                 code = code_match.group(1)
                 result, tool_t = execute_python_code(code)
                 tool_time_spent += tool_t
-                tool_output += f"\n[SYSTEM: Wynik uruchomienia kodu Python]:\n{result}\n"
+                tool_output += f"\n[SYSTEM: Python code execution result]:\n{result}\n"
         except Exception as e:
             tool_output += f"\n[SYSTEM ERROR]: {e}\n"
 
@@ -224,7 +235,7 @@ def process_tool_calls(response_text):
                 query = search_match.group(1).strip()
                 result, tool_t = search_web(query)
                 tool_time_spent += tool_t
-                tool_output += f"\n[SYSTEM: Wyniki wyszukiwania dla '{query}']:\n{result}\n"
+                tool_output += f"\n[SYSTEM: Search results for '{query}']:\n{result}\n"
         except Exception as e:
             tool_output += f"\n[SYSTEM ERROR]: {e}\n"
 
@@ -235,7 +246,7 @@ def process_tool_calls(response_text):
                 query = search_match.group(1).strip()
                 result, tool_t = search_local_docs(query)
                 tool_time_spent += tool_t
-                tool_output += f"\n[SYSTEM: Wyniki z lokalnej bazy danych dla '{query}']:\n{result}\n"
+                tool_output += f"\n[SYSTEM: Local database results for '{query}']:\n{result}\n"
         except Exception as e:
             tool_output += f"\n[SYSTEM ERROR]: {e}\n"
 
@@ -243,7 +254,7 @@ def process_tool_calls(response_text):
 
 
 def run_solo_with_tools(task_query, model_name):
-    chat_history = f"ZADANIE: {task_query}"
+    chat_history = f"TASK: {task_query}"
     total_generation_time = 0
     total_tool_time = 0
     total_tokens = 0
@@ -251,23 +262,23 @@ def run_solo_with_tools(task_query, model_name):
     turn_count = 0
     final_answer = ""
 
-    system_prompt = """Jesteś zaawansowanym asystentem AI rozwiązującym złożone problemy.
-Masz dostęp do następujących narzędzi. Używaj ich pisząc dokładnie w nowej linii:
-1. SEARCH: zapytanie (Szuka informacji w internecie)
-2. LOCAL_DOC: zapytanie (Szuka w bezpiecznej lokalnej bazie danych firmy)
+    system_prompt = """You are an advanced AI assistant solving complex problems.
+You have access to the following tools. Use them by writing EXACTLY on a new line:
+1. SEARCH: query (Searches the internet for information)
+2. LOCAL_DOC: query (Searches the secure company local database)
 3. ```python
 print(2+2)
-``` (Wykonuje kod Python. ZAWSZE używaj print() aby zobaczyć wynik).
+``` (Executes Python code. ALWAYS use print() to see the result).
 
-Po użyciu narzędzia, system zwróci Ci wynik. Przeanalizuj go i kontynuuj. Jeśli masz ostateczną odpowiedź i jesteś jej pewien, napisz 'ZATWIERDZAM WYNIK' i podaj rozwiązanie."""
+After using a tool, the system will return the result to you. Analyze it and continue. If you have the final answer and are sure of it, write 'I APPROVE THE RESULT' and provide the solution."""
 
-    print_header(f"START SOLO CHAT Z NARZĘDZIAMI (Max {MAX_SOLO_TURNS} tur)", Fore.LIGHTYELLOW_EX)
+    print_header(f"START SOLO CHAT WITH TOOLS (Max {MAX_SOLO_TURNS} turns)", Fore.LIGHTYELLOW_EX)
 
     while turn_count < MAX_SOLO_TURNS:
         turn_count += 1
-        print_header(f"SOLO TURA {turn_count}", ROLE_COLORS["solo"])
+        print_header(f"SOLO TURN {turn_count}", ROLE_COLORS["solo"])
 
-        agent_input = f"{chat_history}\n\n[Oczekuję na Twoją analizę i użycie narzędzi, lub słowo ZATWIERDZAM WYNIK, jeśli znasz odpowiedź]"
+        agent_input = f"{chat_history}\n\n[Awaiting your analysis and tool usage, or the words I APPROVE THE RESULT if you know the answer]"
         res = call_ollama(agent_input, system_prompt, model_name, "solo")
 
         total_generation_time += res['generation_time']
@@ -278,7 +289,7 @@ Po użyciu narzędzia, system zwróci Ci wynik. Przeanalizuj go i kontynuuj. Je�
         tool_output, tool_t = process_tool_calls(response_text)
         total_tool_time += tool_t
 
-        chat_history += f"\n\n--- Tura {turn_count} ---\n{response_text}"
+        chat_history += f"\n\n--- Turn {turn_count} ---\n{response_text}"
 
         if tool_output:
             print(ROLE_COLORS['tool'] + tool_output + Style.RESET_ALL)
@@ -286,8 +297,8 @@ Po użyciu narzędzia, system zwróci Ci wynik. Przeanalizuj go i kontynuuj. Je�
 
         final_answer = response_text
 
-        if "ZATWIERDZAM WYNIK" in response_text.upper():
-            print(Fore.LIGHTYELLOW_EX + "\n[SOLO] Zakończył proces rozumowania.")
+        if "I APPROVE THE RESULT" in response_text.upper():
+            print(Fore.LIGHTYELLOW_EX + "\n[SOLO] Finished the reasoning process.")
             break
 
     return {
@@ -304,28 +315,28 @@ Po użyciu narzędzia, system zwróci Ci wynik. Przeanalizuj go i kontynuuj. Je�
 
 def select_next_speaker(history, task, agents_config, last_speaker_id):
     if last_speaker_id == "secretary":
-        print(Fore.MAGENTA + "\n[SYSTEM] Sekretarz podsumował. KONIEC.")
+        print(Fore.MAGENTA + "\n[SYSTEM] Secretary summarized. END.")
         return "finish", {"generation_time": 0, "tokens": 0, "cost": 0}
 
     if last_speaker_id == "critic":
         try:
             last_msg = history.split("---")[-1].strip().upper()
-            if "ZATWIERDZAM" in last_msg:
-                print(Fore.MAGENTA + "\n[SYSTEM] Krytyk zatwierdził. Wołam Sekretarza.")
+            if "APPROVE" in last_msg:
+                print(Fore.MAGENTA + "\n[SYSTEM] Critic approved. Calling Secretary.")
                 return "secretary", {"generation_time": 0, "tokens": 0, "cost": 0}
         except:
             pass
 
-    devil_count = history.count("Adwokat Diabła")
+    devil_count = history.count("Devil's Advocate")
     if last_speaker_id == "solver" and devil_count >= 2:
-        print(Fore.MAGENTA + "\n[SYSTEM] Devil wystąpił już 2 razy. Wymuszam Krytyka.")
+        print(Fore.MAGENTA + "\n[SYSTEM] Devil has already spoken twice. Forcing Critic.")
         return "critic", {"generation_time": 0, "tokens": 0, "cost": 0}
 
     if last_speaker_id == "coder":
-        print(Fore.MAGENTA + "\n[SYSTEM] Coder skończył. Wymuszam Inżyniera QA.")
+        print(Fore.MAGENTA + "\n[SYSTEM] Coder finished. Forcing QA Engineer.")
         available_for_prompt = ["qa_engineer"]
     elif last_speaker_id == "solver":
-        print(Fore.MAGENTA + "\n[SYSTEM] Solver skończył. Wymuszam Krytyka lub Adwokata Diabła.")
+        print(Fore.MAGENTA + "\n[SYSTEM] Solver finished. Forcing Critic or Devil's Advocate.")
         available_for_prompt = ["critic", "devil"]
     else:
         agent_names = [a['id'] for a in agents_config if a['id'] != 'orchestrator']
@@ -334,25 +345,25 @@ def select_next_speaker(history, task, agents_config, last_speaker_id):
     orchestrator_cfg = agents_config[0]
 
     prompt = f"""
-    ZADANIE: {task}
-    Ostatnio mówił: {last_speaker_id}.
+    TASK: {task}
+    Last spoken: {last_speaker_id}.
 
-    Wybierz następnego krok z listy: {available_for_prompt}.
-    ZASADY:
-    - Po 'analyst' -> 'solver' lub 'coder'.
-    - Po 'archivist' -> 'solver' lub 'coder'.
-    - Po 'coder' -> 'qa_engineer'.
-    - Po 'qa_engineer' (jeśli kod zadziałał poprawnie) -> 'solver'.
-    - Po 'qa_engineer' (jeśli kod ma błąd) -> 'coder'.
-    - Po 'solver' -> 'critic' lub 'devil'.
-    - Po 'critic' (jeśli błąd logiczny) -> 'solver'.
-    - Po 'devil' -> 'solver' lub 'coder'.
-    - STRAŻNIK: Nie zapętlaj rozmowy! Jeśli utknęliście, wołaj 'secretary'.
+    Choose the next step from the list: {available_for_prompt}.
+    RULES:
+    - After 'analyst' -> 'solver' or 'coder'.
+    - After 'archivist' -> 'solver' or 'coder'.
+    - After 'coder' -> 'qa_engineer'.
+    - After 'qa_engineer' (if code worked correctly) -> 'solver'.
+    - After 'qa_engineer' (if code has an error) -> 'coder'.
+    - After 'solver' -> 'critic' or 'devil'.
+    - After 'critic' (if logical error) -> 'solver'.
+    - After 'devil' -> 'solver' or 'coder'.
+    - GUARDRAIL: Do not loop the conversation! If you are stuck, call 'secretary'.
 
-    Odpowiedz TYLKO JEDNYM SŁOWEM (ID agenta).
+    Reply ONLY WITH ONE WORD (Agent ID).
     """
 
-    print(ROLE_COLORS['orchestrator'] + f"\n[ORCHESTRATOR] Decyduje (Ostatni: {last_speaker_id})...", end="")
+    print(ROLE_COLORS['orchestrator'] + f"\n[ORCHESTRATOR] Deciding (Last: {last_speaker_id})...", end="")
     res = call_ollama(prompt, orchestrator_cfg['system_prompt'], orchestrator_cfg['model'], "orchestrator")
     decision = res['text'].strip().lower()
 
@@ -366,7 +377,7 @@ def select_next_speaker(history, task, agents_config, last_speaker_id):
         chosen_agent = "finish"
 
     if not chosen_agent:
-        print(Fore.RED + " [SYSTEM] Orchestrator niejasny. Używam ścieżki domyślnej.")
+        print(Fore.RED + " [SYSTEM] Orchestrator unclear. Using default path.")
         if last_speaker_id == "none":
             chosen_agent = "analyst"
         elif last_speaker_id in ["analyst", "archivist"]:
@@ -406,7 +417,7 @@ def run_group_chat_loop(task_query, agents_config, task_id):
     while turn_count < MAX_TURNS:
         turn_count += 1
         if turn_count == MAX_TURNS - 1 and last_speaker != "secretary":
-            print(Fore.MAGENTA + "\n[SYSTEM] Osiągnięto limit tur! Wymuszam Sekretarza do podsumowania.")
+            print(Fore.MAGENTA + "\n[SYSTEM] Turn limit reached! Forcing Secretary to summarize.")
             next_agent_id = "secretary"
             orch_res = {"generation_time": 0, "tokens": 0, "cost": 0.0}
         else:
@@ -417,17 +428,17 @@ def run_group_chat_loop(task_query, agents_config, task_id):
         total_cost += orch_res['cost']
 
         if next_agent_id == "finish":
-            print(Fore.MAGENTA + "\n[ORCHESTRATOR] -> KONIEC.")
+            print(Fore.MAGENTA + "\n[ORCHESTRATOR] -> END.")
             final_answer = chat_history.split("---")[-1]
             break
 
         agent_path.append(next_agent_id)
 
         selected_agent = next((a for a in agents_config if a['id'] == next_agent_id), None)
-        print_header(f"TURA {turn_count}: {selected_agent['role']}", ROLE_COLORS.get(next_agent_id, Fore.WHITE))
+        print_header(f"TURN {turn_count}: {selected_agent['role']}", ROLE_COLORS.get(next_agent_id, Fore.WHITE))
         history_parts = chat_history.split("---")
         recent_history = "---".join(history_parts[-5:]) if len(history_parts) > 5 else chat_history
-        agent_input = f"ZADANIE: {task_query}\n\nOSTATNIE WYDARZENIA W HISTORII:\n{recent_history}\n\nJesteś {selected_agent['id']}. Jeśli potrzebujesz narzędzia, użyj formatu:\nSEARCH: zapytanie\nLOCAL_DOC: zapytanie\n```python\nkod\n```"
+        agent_input = f"TASK: {task_query}\n\nRECENT EVENTS IN HISTORY:\n{recent_history}\n\nYou are {selected_agent['id']}. If you need a tool, use the format:\nSEARCH: query\nLOCAL_DOC: query\n```python\ncode\n```"
 
         agent_res = call_ollama(agent_input, selected_agent['system_prompt'], selected_agent['model'], next_agent_id)
 
@@ -473,8 +484,8 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
 
 def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final):
-    print_header("KOMISJA SĘDZIOWSKA OCENIA", ROLE_COLORS['judge'])
-    JURY_MODELS = ["phi4", "qwen2.5:14b", "gpt-oss:20b"]
+    print_header("JURY IS EVALUATING", ROLE_COLORS['judge'])
+    JURY_MODELS = ["phi4", "qwen2.5:14b", "deepseek-r1:14b"]
     JUDGE_CTX_SIZE = 4096
     MAX_RETRIES = 2
 
@@ -488,41 +499,39 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
     judge_total_cost = 0.0
 
     prompt_template = f"""
-    Jesteś profesjonalnym sędzią w konkursie logicznym.
+        You are a professional judge in a logic competition.
 
-    ZADANIE: {task_query}
-    POPRAWNY WZORZEC (PRAWDA): {expected}
+        TASK: {task_query}
+        CORRECT REFERENCE (TRUTH): {expected}
 
-    ODPOWIEDŹ A (Solo Model - ReAct): {answer_solo}
-    ODPOWIEDŹ B (Multi - Tura 5): {ans_5}
-    ODPOWIEDŹ C (Multi - Tura 10): {ans_10}
-    ODPOWIEDŹ D (Multi - Finał): {ans_final}
+        ANSWER A (Solo Model - ReAct): {answer_solo}
+        ANSWER B (Multi - Turn 5): {ans_5}
+        ANSWER C (Multi - Turn 10): {ans_10}
+        ANSWER D (Multi - Final): {ans_final}
 
-    --- KRYTERIA OCENY (0-100 PKT) ---
-    100 pkt: Odpowiedź idealna, zgodna z WZORCEM, poprawne uzasadnienie.
-    75 pkt: Wynik poprawny, ale uzasadnienie mało precyzyjne lub zawiera drobne nieścisłości.
-    50 pkt: Wynik częściowo poprawny (np. dobra liczba, złe jednostki) LUB wynik dobry, ale błędna logika (przypadek).
-    25 pkt: Wynik błędny, ale widać próbę poprawnego rozumowania (dobry wzór, błąd rachunkowy).
-    0 pkt: Wynik błędny, logika błędna, halucynacje lub zaprzeczenie WZORCOWI.
+        --- SCORING CRITERIA (0-100 PTS) ---
+        100 pts: Perfect answer, matches the REFERENCE, correct reasoning.
+        75 pts: Correct result, but the reasoning is imprecise or contains minor inaccuracies.
+        50 pts: Partially correct result (e.g., correct number, wrong units) OR correct result but flawed logic (by chance).
+        25 pts: Incorrect result, but shows an attempt at correct reasoning (good formula, calculation error).
+        0 pts: Incorrect result, flawed logic, hallucinations, or contradicts the REFERENCE.
 
-    --- ZADANIE DODATKOWE ---
-    Oceń, czy modele zaczęły "halucynować". Zaznacz to jako `true` lub `false`.
-
-    Twoim zadaniem jest ocenić odpowiedzi zgodnie z WZORCEM.
-    Zwróć TYLKO czysty JSON:
-    {{ 
-        "score_solo": X, 
-        "score_multi_5": Y,
-        "score_multi_10": Z,
-        "score_multi_final": W,
-        "hallucination_solo": true/false, 
-        "hallucination_multi_final": true/false, 
-        "reason": "Krótkie uzasadnienie postępu" 
-    }}
-    """
+        --- IMPORTANT: RETURN FORMAT ---
+        You MUST return ONLY a pure JSON object. No introductions, no markdown code blocks, no explanations before or after.
+        Here is the schema you must use (start with "reason" to log your thoughts):
+        {{ 
+            "reason": "Enter your detailed step-by-step analysis here",
+            "score_solo": X, 
+            "score_multi_5": Y,
+            "score_multi_10": Z,
+            "score_multi_final": W,
+            "hallucination_solo": true, 
+            "hallucination_multi_final": false
+        }}
+        """
 
     for judge_model in JURY_MODELS:
-        print(ROLE_COLORS['judge'] + f"   [JURY: {judge_model}] Ocenia...", end="", flush=True)
+        print(ROLE_COLORS['judge'] + f"   [JURY: {judge_model}] Evaluating...", end="", flush=True)
 
         current_prompt = prompt_template
         success = False
@@ -547,13 +556,26 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
                 judge_total_cost += calculate_cost(judge_model, j_tokens)
 
                 if not response_text:
-                    raise ValueError("Pusta odpowiedź od modelu sędziowskiego.")
+                    raise ValueError("Empty response from the judge model.")
 
-                json_match = re.search(r'\{.*?\}', response_text, re.DOTALL)
+                # ROBUST JSON EXTRACTION: Strip markdown blocks and apply greedy match
+                clean_text = response_text.strip()
+                if clean_text.startswith("```json"):
+                    clean_text = clean_text[7:]
+                elif clean_text.startswith("```"):
+                    clean_text = clean_text[3:]
+                if clean_text.endswith("```"):
+                    clean_text = clean_text[:-3]
+
+                json_match = re.search(r'\{.*\}', clean_text, re.DOTALL)
+
                 if not json_match:
-                    raise ValueError(f"Brak formatu JSON: {response_text[:40]}...")
+                    raise ValueError(f"No JSON format in response: {clean_text[:50]}...")
 
-                result = json.loads(json_match.group(0))
+                try:
+                    result = json.loads(json_match.group(0))
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"JSON parsing error: {e}. Returned text: {json_match.group(0)[:50]}...")
 
                 s_solo = int(result.get("score_solo") or 0)
                 s_5 = int(result.get("score_multi_5") or 0)
@@ -562,7 +584,7 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
 
                 h_solo = bool(result.get("hallucination_solo", False))
                 h_multi = bool(result.get("hallucination_multi_final", False))
-                reason = result.get("reason", "Brak")
+                reason = result.get("reason", "None")
 
                 solo_scores.append(s_solo)
                 scores_5.append(s_5)
@@ -574,7 +596,7 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
                 jury_reasons.append(f"[{judge_model}]: {reason}")
 
                 if attempt > 0:
-                    print(Fore.GREEN + f" [NAPRAWIONO W PRÓBIE {attempt + 1}]", end="")
+                    print(Fore.GREEN + f" [FIXED IN ATTEMPT {attempt + 1}]", end="")
 
                 print(f" -> Solo: {s_solo} | Multi(5): {s_5} | Multi(10): {s_10} | Multi(Fin): {s_fin}")
                 success = True
@@ -582,11 +604,11 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
 
             except Exception as e:
                 if attempt < MAX_RETRIES - 1:
-                    print(Fore.YELLOW + f" -> Błąd: {e}. Zgłaszam do modelu i próbuję ponownie... " + ROLE_COLORS[
+                    print(Fore.YELLOW + f" -> Error: {e}. Reporting to model and retrying... " + ROLE_COLORS[
                         'judge'], end="", flush=True)
-                    current_prompt = prompt_template + f"\n\n[SYSTEM ERROR]: Twoja poprzednia odpowiedź wywołała błąd w Pythonie: {e}\nMUSISZ ZWRÓCIĆ WYŁĄCZNIE CZYSTY OBIEKT JSON. Żadnych tekstów wprowadzających!"
+                    current_prompt = prompt_template + f"\n\n[SYSTEM ERROR]: Your previous response caused a Python error: {e}\nYOU MUST RETURN ONLY A CLEAN JSON OBJECT. No introductory text!"
                 else:
-                    print(Fore.RED + f" -> Błąd krytyczny sędziego {judge_model}: {e}")
+                    print(Fore.RED + f" -> Critical judge error {judge_model}: {e}")
 
         if not success:
             solo_scores.append(0)
@@ -608,7 +630,7 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
     final_reason = " | ".join(jury_reasons)
 
     print(ROLE_COLORS['judge'] + "-" * 30)
-    print(f"   [WERDYKT KOŃCOWY] Solo: {avg_solo} | Multi Finał: {avg_fin} | Koszt Jury: ${judge_total_cost:.4f}")
+    print(f"   [FINAL VERDICT] Solo: {avg_solo} | Multi Final: {avg_fin} | Jury Cost: ${judge_total_cost:.4f}")
     print(ROLE_COLORS['judge'] + "-" * 30 + Style.RESET_ALL)
 
     return {
@@ -630,17 +652,17 @@ def visualize_results(df):
 
     avg_scores = [df['score_solo'].mean(), df['score_multi_final'].mean()]
     axes[0, 0].bar(['Solo (ReAct)', 'Multi-Agent'], avg_scores, color=['gray', 'green'])
-    axes[0, 0].set_title('Średnie Punkty')
+    axes[0, 0].set_title('Average Score')
 
     solo_gen = df['solo_generation_time'].mean()
     multi_gen = df['multi_generation_time'].mean()
     solo_tool = df['solo_tool_time'].mean()
     multi_tool = df['multi_tool_time'].mean()
 
-    axes[0, 1].bar(['Solo', 'Group'], [solo_gen, multi_gen], color=['gray', 'orange'], label='Czas Generacji LLM')
+    axes[0, 1].bar(['Solo', 'Group'], [solo_gen, multi_gen], color=['gray', 'orange'], label='LLM Generation Time')
     axes[0, 1].bar(['Solo', 'Group'], [solo_tool, multi_tool], bottom=[solo_gen, multi_gen], color='red', alpha=0.7,
-                   label='Czas Narzędzi (I/O)')
-    axes[0, 1].set_title('Średni Czas: Generacja vs Narzędzia')
+                   label='Tool Time (I/O)')
+    axes[0, 1].set_title('Average Time: Generation vs Tools')
     axes[0, 1].legend()
 
     avg_efficiency = [
@@ -648,17 +670,17 @@ def visualize_results(df):
         (df['score_multi_final'].mean() / (df['multi_tokens'].mean() / 1000)) if df['multi_tokens'].mean() > 0 else 0
     ]
     axes[0, 2].bar(['Solo', 'Group'], avg_efficiency, color=['gray', 'purple'])
-    axes[0, 2].set_title('Token Efficiency (Pkt / 1k Tokenów)')
+    axes[0, 2].set_title('Token Efficiency (Pts / 1k Tokens)')
 
     avg_costs = [df['solo_cost_usd'].mean(), df['multi_cost_usd'].mean()]
     axes[1, 0].bar(['Solo', 'Group Total'], avg_costs, color=['gray', 'gold'])
-    axes[1, 0].set_title('Średni Koszt per Zadanie (USD)')
+    axes[1, 0].set_title('Average Cost per Task (USD)')
     axes[1, 0].set_ylabel('USD')
 
-    stages = ['Tura 5', 'Tura 10', 'Finał']
+    stages = ['Turn 5', 'Turn 10', 'Final']
     scores_evolution = [df['score_multi_5'].mean(), df['score_multi_10'].mean(), df['score_multi_final'].mean()]
     axes[1, 1].plot(stages, scores_evolution, marker='o', color='b', linestyle='-', linewidth=2, markersize=8)
-    axes[1, 1].set_title('Ewolucja wyników Multi-Agent')
+    axes[1, 1].set_title('Multi-Agent Score Evolution')
     axes[1, 1].set_ylim(0, 100)
     axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
@@ -670,10 +692,10 @@ def visualize_results(df):
 
 def generate_html_log(task_id, run_timestamp, chat_history_solo, chat_history_multi, solo_cost, multi_cost):
     html_content = f"""<!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Log zadania: {task_id}</title>
+    <title>Task log: {task_id}</title>
     <style>
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; margin: 20px; }}
         h2 {{ color: #4a4a4a; border-bottom: 2px solid #ddd; padding-bottom: 10px; }}
@@ -685,14 +707,14 @@ def generate_html_log(task_id, run_timestamp, chat_history_solo, chat_history_mu
     </style>
 </head>
 <body>
-    <h2>Zadanie: {task_id} ({run_timestamp})</h2>
-    <div class="stats">Koszt Solo: ${solo_cost:.4f} | Koszt Multi (z sędziami): ${multi_cost:.4f}</div>
+    <h2>Task: {task_id} ({run_timestamp})</h2>
+    <div class="stats">Solo Cost: ${solo_cost:.4f} | Multi Cost (with judges): ${multi_cost:.4f}</div>
 
-    <div class="section-title">Log Modelu Solo (ReAct)</div>
+    <div class="section-title">Solo Model Log (ReAct)</div>
 """
     html_content += f"<div class='message'><div class='content'>{chat_history_solo}</div></div>"
 
-    html_content += "<div class='section-title'>Log Grupy Agentów</div>"
+    html_content += "<div class='section-title'>Agent Group Log</div>"
 
     parts = chat_history_multi.split('---')
     for part in parts:
@@ -720,7 +742,7 @@ def run_research():
     results_data = []
 
     for task in tasks:
-        print_header(f"ZADANIE: {task['id']}", Fore.WHITE)
+        print_header(f"TASK: {task['id']}", Fore.WHITE)
 
         solo_res = run_solo_with_tools(task['query'], MODEL_SOLO)
 
@@ -784,7 +806,7 @@ def run_research():
             with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='w') as writer:
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        print(Fore.GREEN + f"\n[SYSTEM] Zapisano stan w pliku {EXCEL_FILE} (Arkusz: {sheet_name})")
+        print(Fore.GREEN + f"\n[SYSTEM] State saved in file {EXCEL_FILE} (Sheet: {sheet_name})")
 
     visualize_results(pd.DataFrame(results_data))
 
