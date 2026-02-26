@@ -15,10 +15,13 @@ import io
 
 init(autoreset=True)
 
+DATA_DIR = "data"
+os.makedirs(DATA_DIR, exist_ok=True)
+
 OLLAMA_API = "http://localhost:11434/api"
 MODEL_SOLO = "qwen2.5:14b"
-EXCEL_FILE = "groupchat_research_results.xlsx"
-LOCAL_DB_FILE = "local_database.txt"
+EXCEL_FILE = os.path.join(DATA_DIR, "groupchat_research_results.xlsx")
+LOCAL_DB_FILE = os.path.join(DATA_DIR, "local_database.txt")
 MAX_TURNS = 15
 MAX_SOLO_TURNS = 5
 GLOBAL_SEED = 2026
@@ -645,7 +648,7 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
     }
 
 
-def visualize_results(df):
+def visualize_results(df, run_timestamp):
     if df.empty: return
     fig, axes = plt.subplots(2, 3, figsize=(18, 10))
     fig.suptitle('Single Model (ReAct) vs Multi-Agent Swarm', fontsize=16)
@@ -687,6 +690,11 @@ def visualize_results(df):
     axes[1, 2].axis('off')
 
     plt.tight_layout()
+
+    chart_path = os.path.join(DATA_DIR, f"charts_{run_timestamp}.png")
+    plt.savefig(chart_path, dpi=300)
+    print(Fore.GREEN + f"\n[SYSTEM] Charts saved to {chart_path}")
+
     plt.show()
 
 
@@ -729,7 +737,9 @@ def generate_html_log(task_id, run_timestamp, chat_history_solo, chat_history_mu
     </div>
 """
     html_content += "</body></html>"
-    with open(f"log_{run_timestamp}_{task_id}.html", "w", encoding="utf-8") as f:
+
+    filepath = os.path.join(DATA_DIR, f"log_{run_timestamp}_{task_id}.html")
+    with open(filepath, "w", encoding="utf-8") as f:
         f.write(html_content)
 
 
@@ -808,7 +818,7 @@ def run_research():
 
         print(Fore.GREEN + f"\n[SYSTEM] State saved in file {EXCEL_FILE} (Sheet: {sheet_name})")
 
-    visualize_results(pd.DataFrame(results_data))
+    visualize_results(pd.DataFrame(results_data), run_timestamp)
 
 
 if __name__ == "__main__":
