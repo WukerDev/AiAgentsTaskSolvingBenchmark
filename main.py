@@ -488,7 +488,7 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
 def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final):
     print_header("JURY IS EVALUATING", ROLE_COLORS['judge'])
-    JURY_MODELS = ["phi4", "qwen2.5:14b", "deepseek-r1:14b"]
+    JURY_MODELS = ["phi4", "qwen2.5:14b", "llama3.1:8b"]
     JUDGE_CTX_SIZE = 4096
     MAX_RETRIES = 2
 
