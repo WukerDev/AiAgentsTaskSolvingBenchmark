@@ -22,7 +22,7 @@
   {
     "id": "task_05_strawberry",
     "query": "Print all prime numbers from 1 to 100 that contain the digit 3. Then calculate the sum of these numbers. Use Python, do not guess.",
-    "expected_answer": "Sum: 304. Numbers: 3, 13, 23, 31, 37, 43, 53, 73, 83. (Models often forget about 3 or 31, or confuse prime numbers)."
+    "expected_answer": "Sum: 359. Numbers: 3, 13, 23, 31, 37, 43, 53, 73, 83. (Models often forget about 3 or 31, or confuse prime numbers)."
   },
   {
     "id": "task_06_relativity",
