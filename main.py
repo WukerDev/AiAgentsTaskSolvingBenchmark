@@ -617,7 +617,9 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
     avg_10 = round(sum(results_map["multi_10"]) / len(JURY_MODELS), 1)
     avg_fin = round(sum(results_map["multi_final"]) / len(JURY_MODELS), 1)
 
-    # Majority vote for hallucinations
+    solo_std_dev = calculate_jury_disagreement(results_map["solo"])
+    multi_std_dev = calculate_jury_disagreement(results_map["multi_final"])
+
     final_h_solo = sum(hallucination_map["solo"]) > (len(JURY_MODELS) / 2)
     final_h_multi = sum(hallucination_map["multi_final"]) > (len(JURY_MODELS) / 2)
 
@@ -636,9 +638,21 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
         "hallucination_solo": final_h_solo,
         "hallucination_multi": final_h_multi,
         "reason": final_reason,
-        "judge_cost": judge_total_cost
+        "judge_cost": judge_total_cost,
+        "solo_std_dev":solo_std_dev,
+        "multi_std_dev":multi_std_dev
     }
 
+# --- CALCULATE DISAGREEMENT METRICS ---
+def calculate_jury_disagreement(scores_list):
+    if not scores_list or len(scores_list) < 2:
+        return 0.0, "N/A"
+
+    mean = sum(scores_list) / len(scores_list)
+    variance = sum((x - mean) ** 2 for x in scores_list) / len(scores_list)
+    std_dev = round(variance ** 0.5, 2)
+
+    return std_dev
 
 def visualize_results(df, run_timestamp):
     if df.empty: return
@@ -679,7 +693,34 @@ def visualize_results(df, run_timestamp):
     axes[1, 1].set_ylim(0, 100)
     axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
-    axes[1, 2].axis('off')
+    avg_dis_solo = df['solo_std_dev'].mean()
+    avg_dis_multi = df['multi_std_dev'].mean()
+
+    labels = ['Solo scores disagreement', 'Multi scores disagreement']
+    values = [avg_dis_solo, avg_dis_multi]
+
+    def get_rel_color(val):
+        if val < 15: return '#27ae60'  # Green (High)
+        if val < 35: return '#f1c40f'  # Yellow (Medium)
+        return '#e74c3c'  # Red (Low)
+
+    bar_colors = [get_rel_color(avg_dis_solo), get_rel_color(avg_dis_multi)]
+    bars = axes[1, 2].bar(labels, values, color=bar_colors, edgecolor='black', alpha=0.8)
+
+    axes[1, 2].axhline(y=15, color='gray', linestyle='--', alpha=0.5, label='High Reliability')
+    axes[1, 2].axhline(y=35, color='gray', linestyle=':', alpha=0.5, label='Medium Reliability')
+
+    axes[1, 2].set_title('Jury Disagreement (Reliability Ranking)')
+    axes[1, 2].set_ylabel('Standard Deviation')
+
+    for i, bar in enumerate(bars):
+        val = values[i]
+        rank = "HIGH" if val < 15 else ("MEDIUM" if val < 35 else "LOW")
+        axes[1, 2].text(bar.get_x() + bar.get_width() / 2., val + 1,
+                        f'{val:.1f}\n({rank})', ha='center', va='bottom',
+                        fontweight='bold', fontsize=10)
+
+    axes[1, 2].set_ylim(0, max(values) + 25 if values else 60)
 
     plt.tight_layout()
 
@@ -788,9 +829,12 @@ def run_research():
             "solo_turns": solo_res['turns'],
             "multi_turns": group_res['turns'],
             "agent_path": group_res.get('agent_path', ''),
-            "judge_reason": scores.get('reason', '')
+            "judge_reason": scores.get('reason', ''),
+            "solo_reliability": scores.get('solo_reliability', ''),
+            "solo_std_dev": scores.get('solo_std_dev', ''),
+            "multi_reliability": scores.get('multi_reliability', ''),
+            "multi_std_dev": scores.get('multi_std_dev', '')
         }
-
         results_data.append(row)
 
         generate_html_log(task['id'], run_timestamp, solo_res['chat_history'], group_res.get('chat_history', ''),
