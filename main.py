@@ -488,153 +488,147 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
 def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final):
     print_header("JURY IS EVALUATING", ROLE_COLORS['judge'])
-    JURY_MODELS = ["phi4", "qwen2.5:14b", "llama3.1:8b"]
-    JUDGE_CTX_SIZE = 4096
+    JURY_MODELS = ["phi4", "qwen2.5:14b", "gemma3:12b"]
+    JUDGE_CTX_SIZE = 8192
     MAX_RETRIES = 2
 
-    solo_scores = []
-    scores_5 = []
-    scores_10 = []
-    scores_final = []
+    results_map = {
+        "solo": [],
+        "multi_5": [],
+        "multi_10": [],
+        "multi_final": []
+    }
+
+    hallucination_map = {
+        "solo": [],
+        "multi_final": []
+    }
+
     jury_reasons = []
-    hallucination_solo_flags = []
-    hallucination_multi_flags = []
     judge_total_cost = 0.0
 
-    prompt_template = f"""
-        You are a professional judge in a logic competition.
+    candidates_to_test = {
+        "solo": answer_solo,
+        "multi_5": ans_5,
+        "multi_10": ans_10,
+        "multi_final": ans_final
+    }
 
-        TASK: {task_query}
-        CORRECT REFERENCE (TRUTH): {expected}
+    system_prompt = """### ROLE: RUTHLESS AUDITOR
+        Your sole mission is to audit ONE candidate answer against the GROUND TRUTH.
+        
+        ### THE LAWS:
+        1. THE TRUTH IS ABSOLUTE: If the Candidate's conclusion differs from the GROUND TRUTH, the max score can be 30.
+        2. NO SYCOPHANCY: Do not reward sophisticated-sounding logic or jargon if the result is wrong.
+        3. INSTRUCTION ADHERENCE: A correct result that ignores specific constraints (e.g., "list the numbers," "use Python," "no guessing") is an Omission, not a Hallucination.
+        4. FIXED SCHEMA: Return ONLY the JSON object. Do not include introductory text or markdown backticks.
+        
+        ### DEFINITION OF HALLUCINATION:
+        1. PHYSICAL INVERSION: Describing a process opposite to reality.
+        2. SYCOPHANTIC JARGON: Using complex terms to justify an answer that contradicts the GROUND TRUTH.
+        3. LOGICAL LEAP: Correct premises leading to an unrelated or false conclusion.
+        
+        ### MANDATORY SCORING CONSTRAINTS:
+        - IF CONCLUSION != GROUND TRUTH: Maximum Score is 30. No exceptions.
+        - IF CONCLUSION == GROUND TRUTH BUT REASONING IS WRONG: Maximum Score is 60.
 
-        ANSWER A (Solo Model - ReAct): {answer_solo}
-        ANSWER B (Multi - Turn 5): {ans_5}
-        ANSWER C (Multi - Turn 10): {ans_10}
-        ANSWER D (Multi - Final): {ans_final}
-
-        --- SCORING CRITERIA (0-100 PTS) ---
-        100 pts: Perfect answer, matches the REFERENCE, correct reasoning.
-        75 pts: Correct result, but the reasoning is imprecise or contains minor inaccuracies.
-        50 pts: Partially correct result (e.g., correct number, wrong units) OR correct result but flawed logic (by chance).
-        25 pts: Incorrect result, but shows an attempt at correct reasoning (good formula, calculation error).
-        0 pts: Incorrect result, flawed logic, hallucinations, or contradicts the REFERENCE.
-
-        --- IMPORTANT: RETURN FORMAT ---
-        You MUST return ONLY a pure JSON object. No introductions, no markdown code blocks, no explanations before or after.
-        Here is the schema you must use (start with "reason" to log your thoughts):
-        {{ 
-            "reason": "Enter your detailed step-by-step analysis here",
-            "score_solo": X, 
-            "score_multi_5": Y,
-            "score_multi_10": Z,
-            "score_multi_final": W,
-            "hallucination_solo": true, 
-            "hallucination_multi_final": false
-        }}
-        """
+        ### SCORING:
+        - 100: PERFECT. Final result matches Truth + All constraints followed + Logic is flawless.
+        - 80: CORRECT BUT NON-COMPLIANT. Final result matches Truth, but minor instructions (formatting, listing, specific steps) were missed.
+        - 60: CORRECT BUT WEAK. Final result matches Truth, but the reasoning is shallow, circular, or contains minor logical fluff.
+        - 30: HONEST FAILURE. Result is wrong, but the candidate followed a recognizable logical path without inventing fake facts or physics.
+        - 0: TOTAL HALLUCINATION. Result is wrong + Candidate used inverted logic or sophisticated jargon to lie.
+        
+        ### OUTPUT SCHEMA:
+        {
+          "score": 0,
+          "is_hallucination": true/false,
+          "audit_report": "[Direct comparison here]"
+        }"""
 
     for judge_model in JURY_MODELS:
-        print(ROLE_COLORS['judge'] + f"   [JURY: {judge_model}] Evaluating...", end="", flush=True)
+        print(ROLE_COLORS['judge'] + f"\n   [JURY: {judge_model}]", end="")
 
-        current_prompt = prompt_template
-        success = False
+        for label, candidate_text in candidates_to_test.items():
+            print(f"Evaluating {label}...", end="", flush=True)
 
-        for attempt in range(MAX_RETRIES):
-            try:
-                payload = {
-                    "model": judge_model,
-                    "prompt": current_prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.0 if attempt == 0 else 0.2,
-                        "num_ctx": JUDGE_CTX_SIZE,
-                        "seed": GLOBAL_SEED
-                    },
-                    "format": "json"
-                }
-                resp_data = requests.post(f"{OLLAMA_API}/generate", json=payload).json()
-                response_text = resp_data.get('response', '').strip()
+            success = False
+            user_prompt = f"TASK: {task_query}\nGROUND TRUTH: {expected}\n\nCANDIDATE ANSWER TO AUDIT:\n{candidate_text}"
 
-                j_tokens = resp_data.get('prompt_eval_count', 0) + resp_data.get('eval_count', 0)
-                judge_total_cost += calculate_cost(judge_model, j_tokens)
-
-                if not response_text:
-                    raise ValueError("Empty response from the judge model.")
-
-                # ROBUST JSON EXTRACTION: Strip markdown blocks and apply greedy match
-                clean_text = response_text.strip()
-                if clean_text.startswith("```json"):
-                    clean_text = clean_text[7:]
-                elif clean_text.startswith("```"):
-                    clean_text = clean_text[3:]
-                if clean_text.endswith("```"):
-                    clean_text = clean_text[:-3]
-
-                json_match = re.search(r'\{.*\}', clean_text, re.DOTALL)
-
-                if not json_match:
-                    raise ValueError(f"No JSON format in response: {clean_text[:50]}...")
-
+            for attempt in range(MAX_RETRIES):
                 try:
-                    result = json.loads(json_match.group(0))
-                except json.JSONDecodeError as e:
-                    raise ValueError(f"JSON parsing error: {e}. Returned text: {json_match.group(0)[:50]}...")
+                    payload = {
+                        "model": judge_model,
+                        "prompt": user_prompt,
+                        "system": system_prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.0 if attempt == 0 else 0.2,
+                            "num_ctx": JUDGE_CTX_SIZE,
+                            "seed": GLOBAL_SEED
+                        },
+                        "format": "json"
+                    }
+                    resp = requests.post(f"{OLLAMA_API}/generate", json=payload)
+                    resp_data = resp.json()
 
-                s_solo = int(result.get("score_solo") or 0)
-                s_5 = int(result.get("score_multi_5") or 0)
-                s_10 = int(result.get("score_multi_10") or 0)
-                s_fin = int(result.get("score_multi_final") or 0)
+                    # Cost Tracking
+                    j_tokens = resp_data.get('prompt_eval_count', 0) + resp_data.get('eval_count', 0)
+                    judge_total_cost += calculate_cost(judge_model, j_tokens)
 
-                h_solo = bool(result.get("hallucination_solo", False))
-                h_multi = bool(result.get("hallucination_multi_final", False))
-                reason = result.get("reason", "None")
+                    # Extract values
+                    response_text = resp_data.get('response', '').strip()
 
-                solo_scores.append(s_solo)
-                scores_5.append(s_5)
-                scores_10.append(s_10)
-                scores_final.append(s_fin)
+                    try:
+                        result = json.loads(response_text)
+                    except json.JSONDecodeError as e:
+                        raise ValueError(f"JSON parsing error: {e}.")
 
-                hallucination_solo_flags.append(h_solo)
-                hallucination_multi_flags.append(h_multi)
-                jury_reasons.append(f"[{judge_model}]: {reason}")
+                    score = int(result.get("score", 0))
+                    is_h = bool(result.get("is_hallucination", False))
+                    reason = result.get("audit_report", "No reason provided")
 
-                if attempt > 0:
-                    print(Fore.GREEN + f" [FIXED IN ATTEMPT {attempt + 1}]", end="")
+                    print(f"\n      {Fore.CYAN}Target: {label.upper()}{Style.RESET_ALL}")
+                    print(f"      Score: {score}")
+                    print(f"      Hallucination: {is_h}")
+                    print(f"      Reason: {reason}")
 
-                print(f" -> Solo: {s_solo} | Multi(5): {s_5} | Multi(10): {s_10} | Multi(Fin): {s_fin}")
-                success = True
-                break
+                    # Store results
+                    results_map[label].append(score)
+                    if label == "solo":
+                        hallucination_map["solo"].append(is_h)
+                    if label == "multi_final":
+                        hallucination_map["multi_final"].append(is_h)
 
-            except Exception as e:
-                if attempt < MAX_RETRIES - 1:
-                    print(Fore.YELLOW + f" -> Error: {e}. Reporting to model and retrying... " + ROLE_COLORS[
-                        'judge'], end="", flush=True)
-                    current_prompt = prompt_template + f"\n\n[SYSTEM ERROR]: Your previous response caused a Python error: {e}\nYOU MUST RETURN ONLY A CLEAN JSON OBJECT. No introductory text!"
-                else:
-                    print(Fore.RED + f" -> Critical judge error {judge_model}: {e}")
+                    jury_reasons.append(f"[{judge_model}-{label}]: {reason}")
+                    success = True
+                    break
 
-        if not success:
-            solo_scores.append(0)
-            scores_5.append(0)
-            scores_10.append(0)
-            scores_final.append(0)
-            hallucination_solo_flags.append(False)
-            hallucination_multi_flags.append(False)
+                except Exception as e:
+                    if attempt == MAX_RETRIES - 1:
+                        print(Fore.RED + f" [ERR: {label}]", end="")
+                        results_map[label].append(0)  # Default to 0 on failure
 
         manage_model(judge_model, action="unload")
 
-    avg_solo = round(sum(solo_scores) / len(solo_scores), 1) if solo_scores else 0
-    avg_5 = round(sum(scores_5) / len(scores_5), 1) if scores_5 else 0
-    avg_10 = round(sum(scores_10) / len(scores_10), 1) if scores_10 else 0
-    avg_fin = round(sum(scores_final) / len(scores_final), 1) if scores_final else 0
+    # --- FINAL AVERAGING & AGGREGATION ---
+    avg_solo = round(sum(results_map["solo"]) / len(JURY_MODELS), 1)
+    avg_5 = round(sum(results_map["multi_5"]) / len(JURY_MODELS), 1)
+    avg_10 = round(sum(results_map["multi_10"]) / len(JURY_MODELS), 1)
+    avg_fin = round(sum(results_map["multi_final"]) / len(JURY_MODELS), 1)
 
-    final_h_solo = sum(hallucination_solo_flags) > (len(JURY_MODELS) / 2)
-    final_h_multi = sum(hallucination_multi_flags) > (len(JURY_MODELS) / 2)
+    solo_std_dev = calculate_jury_disagreement(results_map["solo"])
+    multi_std_dev = calculate_jury_disagreement(results_map["multi_final"])
+
+    final_h_solo = sum(hallucination_map["solo"]) > (len(JURY_MODELS) / 2)
+    final_h_multi = sum(hallucination_map["multi_final"]) > (len(JURY_MODELS) / 2)
+
     final_reason = " | ".join(jury_reasons)
 
-    print(ROLE_COLORS['judge'] + "-" * 30)
-    print(f"   [FINAL VERDICT] Solo: {avg_solo} | Multi Final: {avg_fin} | Jury Cost: ${judge_total_cost:.4f}")
-    print(ROLE_COLORS['judge'] + "-" * 30 + Style.RESET_ALL)
+    print(f"\n{ROLE_COLORS['judge']}{'-' * 60}")
+    print(f"   [FINAL VERDICT] Solo: {avg_solo} | Multi Final: {avg_fin}")
+    print(f"   Jury Cost: ${judge_total_cost:.4f}")
+    print(f"{ROLE_COLORS['judge']}{'-' * 60}{Style.RESET_ALL}")
 
     return {
         "score_solo": avg_solo,
@@ -644,9 +638,21 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
         "hallucination_solo": final_h_solo,
         "hallucination_multi": final_h_multi,
         "reason": final_reason,
-        "judge_cost": judge_total_cost
+        "judge_cost": judge_total_cost,
+        "solo_std_dev":solo_std_dev,
+        "multi_std_dev":multi_std_dev
     }
 
+# --- CALCULATE DISAGREEMENT METRICS ---
+def calculate_jury_disagreement(scores_list):
+    if not scores_list or len(scores_list) < 2:
+        return 0.0, "N/A"
+
+    mean = sum(scores_list) / len(scores_list)
+    variance = sum((x - mean) ** 2 for x in scores_list) / len(scores_list)
+    std_dev = round(variance ** 0.5, 2)
+
+    return std_dev
 
 def visualize_results(df, run_timestamp):
     if df.empty: return
@@ -687,7 +693,34 @@ def visualize_results(df, run_timestamp):
     axes[1, 1].set_ylim(0, 100)
     axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
-    axes[1, 2].axis('off')
+    avg_dis_solo = df['solo_std_dev'].mean()
+    avg_dis_multi = df['multi_std_dev'].mean()
+
+    labels = ['Solo scores disagreement', 'Multi scores disagreement']
+    values = [avg_dis_solo, avg_dis_multi]
+
+    def get_rel_color(val):
+        if val < 15: return '#27ae60'  # Green (High)
+        if val < 35: return '#f1c40f'  # Yellow (Medium)
+        return '#e74c3c'  # Red (Low)
+
+    bar_colors = [get_rel_color(avg_dis_solo), get_rel_color(avg_dis_multi)]
+    bars = axes[1, 2].bar(labels, values, color=bar_colors, edgecolor='black', alpha=0.8)
+
+    axes[1, 2].axhline(y=15, color='gray', linestyle='--', alpha=0.5, label='High Reliability')
+    axes[1, 2].axhline(y=35, color='gray', linestyle=':', alpha=0.5, label='Medium Reliability')
+
+    axes[1, 2].set_title('Jury Disagreement (Reliability Ranking)')
+    axes[1, 2].set_ylabel('Standard Deviation')
+
+    for i, bar in enumerate(bars):
+        val = values[i]
+        rank = "HIGH" if val < 15 else ("MEDIUM" if val < 35 else "LOW")
+        axes[1, 2].text(bar.get_x() + bar.get_width() / 2., val + 1,
+                        f'{val:.1f}\n({rank})', ha='center', va='bottom',
+                        fontweight='bold', fontsize=10)
+
+    axes[1, 2].set_ylim(0, max(values) + 25 if values else 60)
 
     plt.tight_layout()
 
@@ -746,7 +779,7 @@ def generate_html_log(task_id, run_timestamp, chat_history_solo, chat_history_mu
 def run_research():
     tasks = json.load(open('tasks.json', 'r', encoding='utf-8'))
     agents = json.load(open('agents.json', 'r', encoding='utf-8'))
-
+    tasks = [tasks[0]]
     run_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     sheet_name = f"Run_{run_timestamp}"
     results_data = []
@@ -796,9 +829,12 @@ def run_research():
             "solo_turns": solo_res['turns'],
             "multi_turns": group_res['turns'],
             "agent_path": group_res.get('agent_path', ''),
-            "judge_reason": scores.get('reason', '')
+            "judge_reason": scores.get('reason', ''),
+            "solo_reliability": scores.get('solo_reliability', ''),
+            "solo_std_dev": scores.get('solo_std_dev', ''),
+            "multi_reliability": scores.get('multi_reliability', ''),
+            "multi_std_dev": scores.get('multi_std_dev', '')
         }
-
         results_data.append(row)
 
         generate_html_log(task['id'], run_timestamp, solo_res['chat_history'], group_res.get('chat_history', ''),
