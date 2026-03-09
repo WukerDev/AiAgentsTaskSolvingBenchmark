@@ -2,7 +2,7 @@
   {
     "id": "task_01_helium",
     "query": "You are sitting in a tightly closed car that rapidly accelerates forward. You are holding a helium balloon on a string. Which way will the balloon tilt relative to the inside of the car? Justify physically.",
-    "expected_answer": "Forward. (According to the acceleration vector). The air in the car is heavier than helium and due to inertia moves backward, pushing the lighter balloon forward (pressure gradient)."
+    "expected_answer": "Forward - the same direction as car is moving. (According to the acceleration vector). The air in the car is heavier than helium and due to inertia moves backward, pushing the lighter balloon forward (pressure gradient)."
   },
   {
     "id": "task_02_monty_hall_100",
@@ -10,19 +10,19 @@
     "expected_answer": "Yes, it is worth changing. The chance increases from 1% to 99%. (Door no. 1 has a 1% chance, all the rest had 99%, and since out of the rest only no. 77 is left, it inherits that 99%). The simulation should confirm this."
   },
   {
-    "id": "task_03_self_reference",
-    "query": "How many letters does the answer to this question have, if we write it out in words in Polish (nominative case, lowercase letters)?",
-    "expected_answer": "Eleven (Jedenaście). (The Polish word 'jedenaście' has 11 letters. The agent must guess and check in a loop. Incorrect: 'dwanaście' - has 9 letters)."
+    "id": "task_03_fibonacci_sum",
+    "query": "Calculate the sum of all even Fibonacci numbers that do not exceed 16,000,000 and then halve it. Write a Python script to find the exact sum.",
+    "expected_answer": "9772042. (A classic algorithmic test. Models might hallucinate the sum if relying strictly on memory, so running a Python script guarantees the correct accumulation.)"
   },
   {
-    "id": "task_04_lcm_problem",
-    "query": "Find the smallest natural number which when divided by 2 leaves a remainder of 1, when divided by 3 leaves a remainder of 2, by 4 leaves 3, by 5 leaves 4, by 6 leaves 5, by 7 leaves 6, by 8 leaves 7, by 9 leaves 8, and by 10 leaves 9.",
-    "expected_answer": "2519. (The requested number is LCM(1,2...10) - 1. LCM for 1-10 is 2520. 2520 - 1 = 2519. The Coder should calculate this)."
+    "id": "task_04_collatz_conjecture",
+    "query": "Find the starting integer under 36,895 that produces the longest Collatz sequence. Write a Python script to compute this and return both the starting number and the exact length of its sequence.",
+    "expected_answer": "Starting number: 35655, Sequence length: 324. (Requires iterative loops and tracking the maximum value. Excellent test for code execution capabilities over simple text generation.)"
   },
   {
     "id": "task_05_strawberry",
     "query": "Print all prime numbers from 1 to 100 that contain the digit 3. Then calculate the sum of these numbers. Use Python, do not guess.",
-    "expected_answer": "Sum: 359. Numbers: 3, 13, 23, 31, 37, 43, 53, 73, 83. (Models often forget about 3 or 31, or confuse prime numbers)."
+    "expected_answer": "Sum: 304. Numbers: 3, 13, 23, 31, 37, 43, 53, 73, 83. (Models often forget about 3 or 31, or confuse prime numbers and provide non-prime numbers)."
   },
   {
     "id": "task_06_relativity",
@@ -31,7 +31,7 @@
   },
   {
     "id": "task_07_code_injection",
-    "query": "Write a Python function that takes a list of strings and returns those that are palindromes. But note: the string 'kajak' is to be treated as a NON-palindrome (exception). Test it for the list ['ala', 'kajak', 'zakaz', 'potop'].",
+    "query": "Write a Python function that takes a list of strings and returns those that are palindromes. Note: the string 'kajak' is to be treated as an exception of being NON-palindrome. Test it for the list ['ala', 'kajak', 'zakaz', 'potop'].",
     "expected_answer": "Result list: ['ala', 'zakaz', 'potop']. (The model must include the hardcoded exception in the code, and not just the general palindrome rule)."
   },
   {
@@ -47,11 +47,11 @@
   {
     "id": "task_10_trick_math",
     "query": "How much dirt is in a hole with a diameter of 1 meter and a depth of 5 meters? Calculate the volume in cubic meters.",
-    "expected_answer": "Zero. There is no dirt in a hole (it is empty). If the model starts calculating the volume of a cylinder (pi*r^2*h), it failed the common sense test."
+    "expected_answer": "None. There is no dirt in a hole (it is empty). If the model starts calculating the volume of a cylinder (pi*r^2*h), it failed the common sense test."
   },
   {
     "id": "task_11_log_parsing",
-    "query": "Given is an SSH log snippet: 'Jan 15 10:21:00 server sshd[123]: Failed password for root from 192.168.1.105 port 54321 ssh2\\nJan 15 10:21:05 server sshd[124]: Failed password for admin from 10.0.0.2 port 11111 ssh2\\nJan 15 10:21:12 server sshd[125]: Failed password for root from 192.168.1.105 port 54322 ssh2\\nJan 15 10:21:15 server sshd[126]: Accepted password for root from 192.168.1.105 port 54323 ssh2'. Write a script that parses this text and returns the IP address that first had failed login attempts and then a successful one, and count how many seconds elapsed between the first failed and the successful attempt for that IP.",
+    "query": "Given is an SSH log snippet: 'Jan 15 10:21:00 server sshd[123]: Failed password for root from 192.168.1.105 port 54321 ssh2\\nJan 15 10:21:05 server sshd[124]: Failed password for admin from 10.0.0.2 port 11111 ssh2\\nJan 15 10:21:12 server sshd[125]: Failed password for root from 192.168.1.105 port 54322 ssh2\\nJan 15 10:21:15 server sshd[126]: Accepted password for root from 192.168.1.105 port 54323 ssh2'. Write a script internally that parses this text and returns the IP address that first had failed login attempts and then a successful one, and count how many seconds elapsed between the first failed and the successful attempt for that IP. Post only the results.",
     "expected_answer": "IP: 192.168.1.105. Time: 15 seconds (from 10:21:00 to 10:21:15). The model must use regex or time logic in Python, Solo often gets lost calculating time strings."
   },
   {
@@ -67,36 +67,36 @@
   {
     "id": "task_14_crypto_base64_xor",
     "query": "Decrypt the following message. First decode it from Base64: 'SGVsbG9Xb3JsZA==', and then perform an XOR operation on each byte with a key value of 42 (decimal). Return the final result as text (ASCII characters).",
-    "expected_answer": "The result is the text: 'rOFFE}EX^FO'. ('HelloWorld' decoded and XORed with 42. Tests Coder -> Solver cooperation. Solo will definitely do the XOR incorrectly from memory)."
+    "expected_answer": "The result is the text: 'bOFFE}EXFN'. ('HelloWorld' is the result of base64 decode of 'SGVsbG9Xb3JsZA==' and when that result is  XORed with 42 it yields 'bOFFE}EXFN'. Tests Coder -> Solver cooperation. Model that does not run a coding environment will definitely fail on XOR operations.)."
   },
   {
     "id": "task_15_cve_osint",
     "query": "Search the web for information about the Log4Shell vulnerability (CVE-2021-44228). Provide its exact CVSS v3.1 base score and in which library it occurs. Use the search engine.",
-    "expected_answer": "The CVSS score is 10.0 (Critical). The library is Apache Log4j (or Log4j2). (Tests the Analyst -> search_web tool. Solo might know the answer from its weights, but we will see if the agent correctly uses the tool when forced to)."
+    "expected_answer": "The CVSS score is 10.0 (Critical). The library is Apache Log4j (or Log4j2). (Tests the Analyst -> search_web tool. Solo might know the answer from its weights, but the real way to find it is to use the search engine tool.)."
   },
   {
     "id": "task_16_obfuscated_code",
-    "query": "Given the following Python code: `print(''.join([chr(ord(c) + 1) for c in 'Vzkd`r']))`. What exactly will this code print to the console? Execute it and provide the result.",
-    "expected_answer": "It will print 'Waleas'. (This is a simple Caesar cipher shifted by 1. The Coder must run it and pass it to the Solver. Typical for malware reverse engineering)."
+    "query": "Given the following Python code: `print(''.join([chr(ord(c) + 1) for c in 'V`kd`r']))`. What exactly will this code print to the console? Execute it and provide the result.",
+    "expected_answer": "It will print 'Waleas'. (This is a simple Caesar cipher shifted by 1. The Coder must run the code and return the result)."
   },
   {
     "id": "task_17_cron_logic",
-    "query": "You have a defined CRON job: '*/15 8-16 * * 1-5'. Today is Wednesday, the time is 16:05. When (day of the week, hour, and minute) will the job run next? Think carefully about the hour limits.",
-    "expected_answer": "Next run: Thursday, 8:00 AM. (A Solo model will usually answer 'Wednesday 16:15' failing to notice that the '8-16' range means executions up to 16:59 or 16:00 depending on the dialect, but defaulting past 16:00 it waits for the next allowed day, which is Thursday 8:00. A Python script with the 'croniter' lib would provide certainty)."
+    "query": "You have a defined CRON job: '*/15 8-16 * * 1-5'. Today is Wednesday, the time is 16:05. When (day of the week, hour, and minute) will the job run next?",
+    "expected_answer": "Next run is on Wednesday, 16:15 (The job runs every 15 minutes between 8:00 and 16:59 due to time-span being inclusive of the last hour."
   },
   {
     "id": "task_18_json_data_extraction",
     "query": "You have a list of dictionaries: [{'os': 'Windows', 'uptime': 120}, {'os': 'Linux', 'uptime': 400}, {'os': 'Windows', 'uptime': 80}, {'os': 'Linux', 'uptime': 600}]. Write code that groups this data by operating system and calculates the average uptime for each. Return the result.",
-    "expected_answer": "Windows: 100, Linux: 500. (Tests the ability to write analytical code using aggregation, a classic task for a Data Engineer/DevOps)."
+    "expected_answer": "Result: `{'Windows': 100.0, 'Linux': 500.0}` (Tests the ability to write analytical code using aggregation, a classic task for a Data Engineer/DevOps)."
   },
   {
     "id": "task_19_graph_routing",
     "query": "We have a network of routers connected as follows: A-B (weight 4), A-C (weight 2), B-C (weight 5), B-D (weight 10), C-E (weight 3), E-D (weight 4), D-F (weight 11). What is the shortest path from node A to F and what is its total cost? Write a Python script (using e.g., Dijkstra's algorithm) to precisely calculate this and provide the route.",
-    "expected_answer": "Path: A -> C -> E -> D -> F. Total cost: 20 (A-C: 2, C-E: 3, E-D: 4, D-F: 11). (A Solo model usually gets lost in the weights and makes up a route, e.g., A-B-D-F. A Coder with Python will solve this flawlessly, which looks great in an IT/Telecom context)."
+    "expected_answer": "Path: A -> C -> E -> D -> F. Total cost: 20 (A-C: 2, C-E: 3, E-D: 4, D-F: 11). (A Solo model usually gets lost in the weights and makes up a route, e.g., A-B-D-F. A Coder with Python will solve this flawlessly with the support of coding environment)."
   },
   {
     "id": "task_20_vigenere_crypto",
-    "query": "Decrypt the text 'LXFOPVEFRNHR' encrypted with the classic Vigenère cipher using the key 'TELDAT'. Write and execute Python code that performs this mathematical operation on ASCII characters. Return the plaintext in uppercase letters.",
+    "query": "Decrypt the text 'LINXRXLCDWEF' encrypted with the classic Vigenère cipher using the key 'TELDAT'. Write and execute Python code that performs this mathematical operation on ASCII characters. Return the plaintext in uppercase letters.",
     "expected_answer": "SECURESYSTEM. (Polyalphabetic ciphers are an absolute nightmare for LLMs because tokenizers destroy the letter structure. Without Python, no LLM will solve this correctly)."
   },
   {
@@ -110,23 +110,28 @@
     "expected_answer": "['192.168.1.1', '10.0.0.0', '127.0.0.1']. (A Solo model will very often catch 256.1.2.3 ignoring the 255 octet limit, or grab 1.2.3.4 from the longer string. Running a proper Regex by the agent guarantees success)."
   },
   {
-    "id": "task_23_live_system_hash",
-    "query": "Write and execute Python code that fetches the current system date (today's), strictly formats it as YYYY-MM-DD, and then generates a SHA-256 hash from this string. Return this hash. Do not hardcode the date in the code, let the script fetch it from the system itself.",
-    "expected_answer": "A hash matching the current date (e.g., for 2026-02-25 the SHA-256 hash is... etc.). (This proves that agents have access to the runtime environment and real-time, whereas an isolated LLM only uses knowledge from before the training cutoff)."
+    "id": "task_23_anagram_groups",
+    "query": "Given the list of words ['alfa', 'lada', 'fala', 'alda', 'lafa', 'dala', 'luba'], write a Python script that groups anagrams together. Return the exact count of groups that contain exactly 3 words.",
+    "expected_answer": "The groups ['alfa', 'lada', 'fala'] and ['lada', 'alda', 'dala'] are the two groups that contain exactly 3 words. So the final result is 2. (This tests the ability to write code that sorts letters in words and groups them. Solo models often fail to group correctly or count the groups)."
   },
   {
     "id": "task_24_noise_data_sanitization",
     "query": "Here is a noisy string: '1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6'. I want you to write code that extracts only and exclusively all even digits from it (including 0), then sums them together, and finally checks if this sum is divisible by 3. Return the sum and the test result (True/False).",
-    "expected_answer": "The even digits are: 2, 4, 6, 8, 0, 2, 4, 6. Their sum is 32. 32 is not divisible by 3, so the result is False. (For an LLM, counting characters and performing operations on them is black magic due to tokenization. Python will do this in 3 lines of code)."
+    "expected_answer": "The even digits are: 2, 4, 6, 8, 0, 2, 4, 6. Their sum is 32. 32 is not divisible by 3, so the result is False. (For LLMs without coding environment, counting characters and performing operations on them it is impossible due to tokenization, unless the answer already exists in dataset.)."
   },
   {
-    "id": "task_25_local_finance",
-    "query": "Based on our internal financial reports for Q3, calculate the exact net profit margin of the company in percentages (formula: profit / revenue * 100). Find the necessary data in the local archive and use Python code to perform the division.",
-    "expected_answer": "The margin is 25%. (In the local database, revenue is 1.2M, and costs are 0.9M. Profit is 0.3M. 0.3 / 1.2 * 100% = 25%. A Solo model will hallucinate random financial data, while the agent team will connect the Archivist with the Coder)."
+    "id": "task_25_perfect_numbers",
+    "query": "Write a Python script to find all perfect numbers between 1 and 1,000,000. A perfect number is a positive integer that is equal to the sum of its proper divisors. Return the exact list of these numbers.",
+    "expected_answer": "[6, 28, 496, 8128]. (Calculating divisors and checking sums up to 1M is extremally computationally heavy, especially for a language model's context window, making a Python execution environment essential for accuracy.)"
   },
   {
-    "id": "task_26_local_server_crash",
-    "query": "We have a server crash! Quickly search the internal document database and provide the step-by-step emergency procedure. Additionally, extract and give me the current administrator password to the local database so I can log in.",
-    "expected_answer": "Emergency procedure: 1. Restart the sshd service. 2. Flush iptables. Admin password: adm1n_p@ssw0rd_lokalny. (A Solo LLM will make up a standard Linux procedure and hallucinate a fake password, which the Judge will immediately penalize with 0 points for contradicting the key/expected answer)."
+    "id": "task_26_sundays_20th_century",
+    "query": "How many Sundays fell on the first of the month during the 20th century (from January 1, 1950 to December 31, 1990)? Write a Python script using the datetime module to calculate this exact number.",
+    "expected_answer": "72. (A deterministic date math problem. Models trying to guess from memory will often be off by a few days due to leap year miscalculations, making Python execution necessary for a guaranteed correct answer)."
+  },
+  {
+    "id": "task_27_fsharp_minor_frequencies",
+    "query": "On a standard 88-key piano tuned to equal temperament (where A4 is key number 49 and its frequency is exactly 440 Hz), calculate the total sum of the frequencies of an F# minor triad (F#4, A4, C#5), which correspond to key numbers 46, 49, and 53. Use the standard formula for note frequencies. Return the sum rounded to exactly two decimal places. Write a Python script to compute this.",
+    "expected_answer": "1364.36. (The exact frequencies are ~370.00 Hz, 440.00 Hz, and ~554.37 Hz. Floating-point math with fractional exponents is a major hallucination trap for models without a coding environment, making Python execution necessary for accuracy)."
   }
 ]

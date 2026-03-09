@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d45e51ed-c987-43ff-8091-aa7fcf8b1ecd" name="Changes" comment="Poprawka" />
+    <list default="true" id="d45e51ed-c987-43ff-8091-aa7fcf8b1ecd" name="Changes" comment="Poprawka">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -52,6 +54,11 @@
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Wikto\PycharmProjects\MagisterkaFinal\data" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="MagisterkaFinal" />
@@ -140,7 +147,23 @@
       <option name="project" value="LOCAL" />
       <updated>1772136276385</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Poprawka">
+      <option name="closed" value="true" />
+      <created>1772138598232</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1772138598232</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Poprawka">
+      <option name="closed" value="true" />
+      <created>1772138712135</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1772138712135</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
