@@ -26,7 +26,6 @@ MAX_TURNS = 15
 MAX_SOLO_TURNS = 5
 GLOBAL_SEED = 2026
 
-# Initialize local database with English content
 if not os.path.exists(LOCAL_DB_FILE):
     with open(LOCAL_DB_FILE, "w", encoding="utf-8") as f:
         f.write("--- LOCAL KNOWLEDGE BASE ---\n")
@@ -415,6 +414,8 @@ def run_group_chat_loop(task_query, agents_config, task_id):
     snapshot_5 = ""
     snapshot_10 = ""
 
+    last_substantive_answer = ""
+
     print_header(f"START GROUP CHAT (Max {MAX_TURNS})", Fore.MAGENTA)
 
     while turn_count < MAX_TURNS:
@@ -432,7 +433,7 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
         if next_agent_id == "finish":
             print(Fore.MAGENTA + "\n[ORCHESTRATOR] -> END.")
-            final_answer = chat_history.split("---")[-1]
+            final_answer = last_substantive_answer if last_substantive_answer else chat_history.split("---")[-1]
             break
 
         agent_path.append(next_agent_id)
@@ -460,16 +461,20 @@ def run_group_chat_loop(task_query, agents_config, task_id):
         chat_history += f"\n--- {selected_agent['role']} ---\n{response_text}\n"
         final_answer = response_text
         last_speaker = next_agent_id
+        if next_agent_id in ["solver", "coder", "analyst", "secretary"]:
+            last_substantive_answer = response_text
+        current_snapshot = last_substantive_answer if last_substantive_answer else final_answer
 
         if turn_count == 5:
-            snapshot_5 = final_answer
+            snapshot_5 = current_snapshot
         if turn_count == 10:
-            snapshot_10 = final_answer
+            snapshot_10 = current_snapshot
 
     if not snapshot_5:
-        snapshot_5 = final_answer
+        snapshot_5 = last_substantive_answer if last_substantive_answer else final_answer
     if not snapshot_10:
-        snapshot_10 = final_answer
+        snapshot_10 = last_substantive_answer if last_substantive_answer else final_answer
+    final_answer = last_substantive_answer if last_substantive_answer else final_answer
 
     return {
         "final_answer": final_answer,
@@ -571,12 +576,8 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
                     }
                     resp = requests.post(f"{OLLAMA_API}/generate", json=payload)
                     resp_data = resp.json()
-
-                    # Cost Tracking
                     j_tokens = resp_data.get('prompt_eval_count', 0) + resp_data.get('eval_count', 0)
                     judge_total_cost += calculate_cost(judge_model, j_tokens)
-
-                    # Extract values
                     response_text = resp_data.get('response', '').strip()
 
                     try:
@@ -592,8 +593,6 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
                     print(f"      Score: {score}")
                     print(f"      Hallucination: {is_h}")
                     print(f"      Reason: {reason}")
-
-                    # Store results
                     results_map[label].append(score)
                     if label == "solo":
                         hallucination_map["solo"].append(is_h)
@@ -607,11 +606,10 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
                 except Exception as e:
                     if attempt == MAX_RETRIES - 1:
                         print(Fore.RED + f" [ERR: {label}]", end="")
-                        results_map[label].append(0)  # Default to 0 on failure
+                        results_map[label].append(0)
 
         manage_model(judge_model, action="unload")
 
-    # --- FINAL AVERAGING & AGGREGATION ---
     avg_solo = round(sum(results_map["solo"]) / len(JURY_MODELS), 1)
     avg_5 = round(sum(results_map["multi_5"]) / len(JURY_MODELS), 1)
     avg_10 = round(sum(results_map["multi_10"]) / len(JURY_MODELS), 1)
@@ -643,7 +641,6 @@ def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final)
         "multi_std_dev":multi_std_dev
     }
 
-# --- CALCULATE DISAGREEMENT METRICS ---
 def calculate_jury_disagreement(scores_list):
     if not scores_list or len(scores_list) < 2:
         return 0.0, "N/A"
@@ -700,9 +697,9 @@ def visualize_results(df, run_timestamp):
     values = [avg_dis_solo, avg_dis_multi]
 
     def get_rel_color(val):
-        if val < 15: return '#27ae60'  # Green (High)
-        if val < 35: return '#f1c40f'  # Yellow (Medium)
-        return '#e74c3c'  # Red (Low)
+        if val < 15: return '#27ae60'
+        if val < 35: return '#f1c40f'
+        return '#e74c3c'
 
     bar_colors = [get_rel_color(avg_dis_solo), get_rel_color(avg_dis_multi)]
     bars = axes[1, 2].bar(labels, values, color=bar_colors, edgecolor='black', alpha=0.8)
