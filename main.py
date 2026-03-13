@@ -493,7 +493,7 @@ def run_group_chat_loop(task_query, agents_config, task_id):
 
 def get_judge_score(task_query, expected, answer_solo, ans_5, ans_10, ans_final):
     print_header("JURY IS EVALUATING", ROLE_COLORS['judge'])
-    JURY_MODELS = ["phi4", "qwen2.5:14b", "gemma3:12b"]
+    JURY_MODELS = ["phi4", "qwen2.5:14b", "deepseek-r1:14b"]
     JUDGE_CTX_SIZE = 8192
     MAX_RETRIES = 2
 
@@ -776,7 +776,6 @@ def generate_html_log(task_id, run_timestamp, chat_history_solo, chat_history_mu
 def run_research():
     tasks = json.load(open('tasks.json', 'r', encoding='utf-8'))
     agents = json.load(open('agents.json', 'r', encoding='utf-8'))
-    tasks = [tasks[0]]
     run_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     sheet_name = f"Run_{run_timestamp}"
     results_data = []
